@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # 新策略：T-2涨停 → T-1放量+均线多头 → T日开盘买入 → T+1收盘卖出
 # 每个信号单独算盈亏，不限仓位
 # ============================================================
@@ -8,7 +8,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 import pandas as pd, numpy as np
 
-CSV = r"C:\Users\Administrator\Desktop\全市场A股_2026-04-12_2026-06-12.csv"
+CSV = r".\data\全市场A股_2026-04-12_2026-06-12.csv"
 
 df = pd.read_csv(CSV)
 df["index"] = pd.to_datetime(df["index"])
