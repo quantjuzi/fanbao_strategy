@@ -185,9 +185,10 @@
 
 ## 文件结构
 
-| 文件 | 说明 |
+| 文件/目录 | 说明 |
 |---|---|
 | daily_screen.py | 收盘后选股入口 |
+| daily_notes/ | 每日选股记录和市场分析 |
 | backtest/ | 回测引擎 + 反包回测代码 |
 | strategies/ | 策略模块 |
 | trade_log.csv | 实盘记录 |
