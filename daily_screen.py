@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "strategies"))
 from mode1_fanbao import screen as screen_mode1
 from mode2_trend_gap import screen as screen_mode2
 
-CSV_PATH = r"C:\Users\Administrator\Desktop\全市场A股_20260412_20260612.csv"
+CSV_PATH = r".\data\全市场A股_20260412_20260612.csv"
 COL_DATE = "index"
 
 # --- 读数据 ---
