@@ -1,1 +1,3 @@
-锘縟ate,code,buy_price,sell_price,pnl_pct,strategy_memo
+date,code,qty,buy_price,sell_price,pnl_pct,strategy_memo
+2026-06-17,002733,500,36.56,35.58,-2.68%,T+1卖出：打板买入后次日竞价不及预期，全天分时弱震荡，止损出局
+2026-06-17,002203,700,24.00,24.46,1.93%,T+1卖出：两次分批卖出，均价24.46，小幅盈利
