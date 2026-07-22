@@ -1,4 +1,10 @@
-# 反包策略量化项目
+﻿# 反包策略量化项目
+
+> 📓 **求职核心材料：[策略分析 Notebook](./outputs/fanbao_strategy_analysis.ipynb)**
+>
+> 包含完整的策略逻辑、回测数据、实盘绩效和可视化分析，无需安装直接查看。
+
+
 
 A股短线反包策略的量化实现 —— 从策略定义、回测验证到实盘交易的全流程记录。
 
@@ -87,6 +93,7 @@ Python | Pandas | NumPy | Matplotlib | 聚宽数据接口
 
 | 文件/目录                | 说明                        |
 |------------------------|----------------------------|
+| outputs/               | Jupyter 分析报告（求职核心材料）
 | daily_screen.py        | 每日收盘后选股入口              |
 | scripts/               | 工具脚本（绩效分析、数据清洗）    |
 | strategies/            | 策略模块                      |
@@ -108,6 +115,7 @@ git clone https://github.com/quantjuzi/fanbao_strategy.git
 cd fanbao_strategy
 pip install -r requirements.txt
 python scripts/performance_report.py  # 生成最新绩效报告
+# outputs/fanbao_strategy_analysis.ipynb  # 打开策略分析 Notebook
 ```
 
 ---
@@ -117,3 +125,6 @@ python scripts/performance_report.py  # 生成最新绩效报告
 > 代码AI辅助，可复现、可验证。
 
 **声明：以上为个人实盘记录与策略研究，不构成投资建议。**
+
+
+
