@@ -9,6 +9,7 @@ import sys, io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 import os, sys
+from config import settings
 import pandas as pd
 
 # 把strategies目录加到路径
@@ -16,8 +17,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "strategies"))
 from mode1_fanbao import screen as screen_mode1
 from mode2_trend_gap import screen as screen_mode2
 
-CSV_PATH = r".\data\全市场A股_20260412_20260612.csv"
-COL_DATE = "index"
+# 从配置文件读取
+CSV_PATH = settings['data']['csv_path']  # r".\data\全市场A股_20260412_20260612.csv"
+COL_DATE = settings['data']['date_col']  # "index"
 
 # --- 读数据 ---
 df = pd.read_csv(CSV_PATH)
@@ -65,4 +67,5 @@ else:
 print(f"\n{'=' * 60}")
 print("明天操作: 看分时找买点 -> 买入 -> 后天9:40附近卖出")
 print(f"{'=' * 60}")
+
 
