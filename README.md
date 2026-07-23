@@ -63,8 +63,6 @@ Python | Pandas | NumPy | Matplotlib | 聚宽数据接口
 | 平均盈利      | +2875.7  |
 | 平均亏损      | -2123.54 |
 
-> 详细绩效报告参见 [PERFORMANCE_SUMMARY.md](./PERFORMANCE_SUMMARY.md)
-
 ### 回测验证（2026.04.12 - 2026.06.12）
 
 基于聚宽全A股日线数据（5509支股票）进行两个月分段回测。
