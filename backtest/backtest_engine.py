@@ -1,4 +1,8 @@
-﻿# ============================================================
+﻿import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from config import settings
+
+# ============================================================
 # 鍥炴祴寮曟搸 - 閫氱敤妗嗘灦
 #
 # 鐢ㄦ硶:
@@ -110,7 +114,10 @@ class BacktestResult:
         print(self.report)
 
 
-def backtest(strategy_fn, df, initial_cash=50000, max_positions=3, commission_rate=0.00025):
+def backtest(strategy_fn, df, initial_cash=None, max_positions=None, commission_rate=None):
+    if initial_cash is None: initial_cash = settings['backtest']['initial_cash']
+    if max_positions is None: max_positions = settings['backtest']['max_positions']
+    if commission_rate is None: commission_rate = settings['backtest']['commission_rate']
     df = df.copy()
     df["index"] = pd.to_datetime(df["index"])
     df.sort_values(["index", "璇佸埜浠ｇ爜"], inplace=True)
@@ -205,4 +212,6 @@ if __name__ == "__main__":
     print("  2. 鍥炴祴: result = backtest(my_strat, df)")
     print("  3. 鎶ヨ〃: result.print_report()")
     print("  4. 鐢诲浘: plot_result(result)")
+
+
 
