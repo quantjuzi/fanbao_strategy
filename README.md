@@ -1,4 +1,4 @@
-# 反包策略量化项目
+﻿# 反包策略量化项目
 
 > 📓 **求职核心材料：[策略分析 Notebook](./outputs/fanbao_strategy_analysis.ipynb)**
 >
@@ -54,7 +54,7 @@ Python | Pandas | NumPy | Matplotlib | 聚宽数据接口
 
 ### 实盘记录（2025.10 - 至今）
 
-![累计收益曲线](./reports/历史收益曲线.jpg)
+![累计收益曲线](./reports/account_screenshot.jpg)
 
 | **指标**       | **数值**  |
 |---------------|----------|
@@ -84,7 +84,7 @@ Python | Pandas | NumPy | Matplotlib | 聚宽数据接口
 
 | 文件/目录                | 说明                        |
 |------------------------|----------------------------|
-| outputs/               | Jupyter 分析报告
+| outputs/               | Jupyter 策略分析报告
 | daily_screen.py        | 每日收盘后选股入口              |
 | scripts/               | 工具脚本（绩效分析、数据清洗）    |
 | strategies/            | 策略模块                      |
@@ -116,3 +116,4 @@ python scripts/performance_report.py  # 生成最新绩效报告
 > 代码AI辅助，可复现、可验证。
 
 **声明：以上为个人实盘记录与策略研究，不构成投资建议。**
+
