@@ -1,4 +1,4 @@
-# ============================================================
+﻿# ============================================================
 # 模式1：反包策略
 #
 # 买入条件:
@@ -17,10 +17,13 @@
 
 
 import requests
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from config import settings
 import pandas as pd
 
 # 大单阈值：单笔成交额 >= 50万元算大单
-LARGE_THRESHOLD = 500000
+LARGE_THRESHOLD = settings['strategy']['mode1_fanbao']['large_order']['threshold']
 
 
 def get_large_order_amounts(code):
@@ -91,7 +94,7 @@ def screen(df, today):
         (latest["昨收"] < latest["昨收"].shift(1)) &
         (latest["money"] >= 10_000_000_000) &
         (latest["是否涨停"] != 1) &
-        (latest["涨跌幅"] >= 0.03)
+        (latest["涨跌幅] >= settings['strategy']['mode1_fanbao']['min_pct'])
     )
     result = latest[cond]
     if result.empty:
@@ -106,7 +109,7 @@ def screen(df, today):
         if ratio is not None:
             label = "✅主动>被动" if ratio > 1 else "❌主动<被动"
             print(f"    {code}  主动买入大单:{active/1e8:.2f}亿  被动买入大单:{passive/1e8:.2f}亿  比值:{ratio:.2f}  {label}")
-            if ratio > 1:
+            if ratio > settings['strategy']['mode1_fanbao']['large_order']['min_ratio']:
                 filtered.append(row)
         else:
             print(f"    {code}  数据异常，跳过")
@@ -115,3 +118,4 @@ def screen(df, today):
         result = pd.DataFrame(filtered)
 
     return result[["证券代码", "close", "money", "涨跌幅"]].to_dict("records")
+
