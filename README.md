@@ -84,7 +84,7 @@ Python | Pandas | NumPy | Matplotlib | 聚宽数据接口
 
 | 文件/目录                | 说明                        |
 |------------------------|----------------------------|
-| outputs/               | Jupyter 分析报告（求职核心材料）
+| outputs/               | Jupyter 分析报告
 | daily_screen.py        | 每日收盘后选股入口              |
 | scripts/               | 工具脚本（绩效分析、数据清洗）    |
 | strategies/            | 策略模块                      |
