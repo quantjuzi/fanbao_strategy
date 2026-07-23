@@ -1,3 +1,7 @@
+﻿import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from config import settings
+
 # 模式2：均线上方大票高开趋势策略
 #
 # 买入条件:
@@ -29,8 +33,9 @@ def screen(df, today):
         (latest["open"] > latest["pre_close"]) &      # 今天高开
         (latest["money"] >= 10_000_000_000) &         # 大票
         (latest["是否涨停"] != 1) &                    # 未涨停
-        (latest["涨跌幅"] >= 0.02)                     # 至少涨2%
+        (latest["涨跌幅] >= settings['strategy']['mode2_trend_gap']['min_pct'])                     # 至少涨2%
     )
 
     result = latest[cond]
     return result[["证券代码", "close", "money", "涨跌幅"]].to_dict("records")
+
