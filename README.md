@@ -1,6 +1,6 @@
 ﻿# 反包策略量化项目
 
-> 📓 **求职核心材料：[策略分析 Notebook](./outputs/fanbao_strategy_analysis.ipynb)**
+> 📓 **核心分析材料：[策略分析 Notebook](./outputs/fanbao_strategy_analysis.ipynb)**
 >
 > 包含完整的策略逻辑、回测数据、实盘绩效和可视化分析，无需安装直接查看。
 
