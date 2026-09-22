@@ -93,6 +93,15 @@ def max_drawdown(returns: list[float]) -> float | None:
     return max_dd
 
 
+def sample_conclusion(sample_count: int) -> str:
+    """根据已完成样本量给出统计结论等级。"""
+    if sample_count < 30:
+        return "样本不足"
+    if sample_count < 100:
+        return "初步验证"
+    return "样本较充足"
+
+
 def load_schema() -> dict[str, object]:
     """读取字段配置。"""
     with SCHEMA_PATH.open("r", encoding="utf-8") as file:
@@ -196,6 +205,7 @@ def calc_metrics(rows: list[dict[str, str]]) -> dict[str, object]:
         "盈亏比": profit_factor,
         "最大回撤%": max_drawdown(returns),
         "待卖出样本": len(pending),
+        "样本结论": sample_conclusion(len(returns)),
     }
 
 
@@ -292,6 +302,7 @@ def main() -> None:
         "盈亏比",
         "最大回撤%",
         "待卖出样本",
+        "样本结论",
     ]
     write_csv(DETAIL_SUMMARY_PATH, detail_summary, detail_columns)
 
@@ -311,6 +322,7 @@ def main() -> None:
         "盈亏比",
         "最大回撤%",
         "待卖出样本",
+        "样本结论",
     ]
     write_csv(STRATEGY_SUMMARY_PATH, strategy_summary, strategy_columns)
 
