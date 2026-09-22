@@ -48,6 +48,18 @@ Python | Pandas | NumPy | Matplotlib | 聚宽数据接口
 - T+1按分时图+板块强度+大盘情绪综合判断卖出
 - 严格次日卖出纪律，不扛票
 
+### 连板接力策略（实验阶段）
+
+半人工连板接力验证策略，包含竞价区间筛选、板数分组、模拟买入和次日均价卖出。
+
+详见 [连板接力策略.md](./strategies/连板接力策略.md)。
+
+验证数据：
+
+- [逐笔记录](./results/strategy_validation.csv)
+- [分组汇总](./results/strategy_validation_summary.csv)
+- [统计脚本](./scripts/strategy_validation.py)
+
 ---
 
 ## 绩效表现
