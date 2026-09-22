@@ -60,6 +60,7 @@ Python | Pandas | NumPy | Matplotlib | 聚宽数据接口
 - [分组汇总](./results/strategy_validation_summary.csv)
 - [统计脚本](./scripts/strategy_validation.py)
 - [验证工作流](./docs/strategy_validation_workflow.md)
+- [短线因子说明](./docs/short_term_factor_guide.md)
 
 ---
 
