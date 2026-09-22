@@ -1,0 +1,53 @@
+{
+  "categories": [
+    {
+      "name": "量价",
+      "data_level": "日线",
+      "factors": [
+        {"name": "成交额", "formula": "money", "status": "已有"},
+        {"name": "实体涨幅", "formula": "close / open - 1", "status": "已有"},
+        {"name": "实际换手率", "formula": "volume / free_float_shares", "status": "待接入"}
+      ]
+    },
+    {
+      "name": "竞价",
+      "data_level": "竞价数据",
+      "factors": [
+        {"name": "竞价涨幅", "formula": "auction_price / pre_close - 1", "status": "已有"},
+        {"name": "竞价换手率", "formula": "auction_volume / free_float_shares", "status": "待接入"},
+        {"name": "竞价走势", "formula": "9:15-9:25 price path", "status": "待接入"}
+      ]
+    },
+    {
+      "name": "连板结构",
+      "data_level": "日线/分钟线",
+      "factors": [
+        {"name": "连板数", "formula": "consecutive_limit_up_days", "status": "已有"},
+        {"name": "昨日是否涨停", "formula": "prev_limit_up", "status": "已有"},
+        {"name": "首封时间", "formula": "first_limit_up_time", "status": "待接入"},
+        {"name": "开板次数", "formula": "open_limit_count", "status": "待接入"}
+      ]
+    },
+    {
+      "name": "盘口与订单流",
+      "data_level": "L1/L2/Tick",
+      "factors": [
+        {"name": "委买委卖比", "formula": "bid_volume / ask_volume", "status": "待接入"},
+        {"name": "内外盘比", "formula": "active_buy_volume / active_sell_volume", "status": "待接入"},
+        {"name": "封单金额", "formula": "limit_up_bid_amount", "status": "待接入"},
+        {"name": "封成比", "formula": "limit_up_bid_amount / money", "status": "待接入"},
+        {"name": "撤单率", "formula": "cancel_volume / order_volume", "status": "待接入"}
+      ]
+    },
+    {
+      "name": "题材与情绪",
+      "data_level": "人工/日线",
+      "factors": [
+        {"name": "题材标签", "formula": "theme_label", "status": "半自动"},
+        {"name": "同题材涨停数", "formula": "theme_limit_up_count", "status": "待接入"},
+        {"name": "全市场涨停数", "formula": "market_limit_up_count", "status": "待接入"},
+        {"name": "炸板率", "formula": "failed_limit_up_count / touched_limit_up_count", "status": "待接入"}
+      ]
+    }
+  ]
+}
