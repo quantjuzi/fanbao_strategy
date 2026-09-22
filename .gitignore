@@ -6,3 +6,10 @@
 *.csv
 data/*.csv
 reports/*.png
+
+!results/strategy_validation.csv
+!results/strategy_validation_summary.csv
+!results/strategy_validation_strategy_summary.csv
+!results/strategy_validation_status.csv
+
+private/
