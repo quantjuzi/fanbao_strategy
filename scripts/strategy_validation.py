@@ -65,6 +65,8 @@ def build_summary(rows: list[dict[str, str]]) -> list[dict[str, object]]:
     for (strategy, board, condition), group_rows in sorted(groups.items()):
         completed = [row for row in group_rows if is_completed(row)]
         pending = [row for row in group_rows if is_pending(row)]
+        if not completed and not pending:
+            continue
         returns = [parse_float(row.get("收益率%", "")) for row in completed]
         returns = [value for value in returns if value is not None]
         wins = [value for value in returns if value > 0]
