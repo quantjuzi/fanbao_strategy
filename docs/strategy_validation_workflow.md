@@ -8,9 +8,9 @@
 
 1. 在当天 `daily_notes/YYYY-MM-DD.md` 记录观察池和买入条件。
 2. 将当日候选追加到 `results/strategy_validation.csv`。
-3. 已完成交易填写买入价、卖出日期、卖出均价和收益率。
-4. 尚未完成的交易只填写买入信息，收益率留空。
-5. 运行统计脚本生成标准化数据和汇总。
+3. 信号行创建后不再修改，旧行保持原样。
+4. 后续卖出完成时，把结算结果追加到 `results/strategy_validation_settlements.csv`。
+5. 运行统计脚本，脚本会把结算记录临时合并后生成标准化数据和汇总。
 
 ```powershell
 python scripts/strategy_validation.py
@@ -25,12 +25,15 @@ python scripts/strategy_validation.py
 - `模拟买入=是` 且收益率有值：已完成
 - `模拟买入=是` 且收益率无值：待卖出
 - `模拟买入=否`：未买入
+- 信号文件只追加，不修改旧行
+- 结算文件只追加，通过“信号日期 + 股票代码”关联原信号
 
 ## 输出文件
 
 - `results/strategy_validation_status.csv`
 - `results/strategy_validation_summary.csv`
 - `results/strategy_validation_strategy_summary.csv`
+- `results/strategy_validation_settlements.csv`
 
 ## 分组原则
 
