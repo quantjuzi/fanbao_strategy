@@ -22,6 +22,7 @@ from typing import Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 INPUT_PATH = ROOT / "results" / "strategy_validation.csv"
+SETTLEMENTS_PATH = ROOT / "results" / "strategy_validation_settlements.csv"
 SCHEMA_PATH = ROOT / "config" / "strategy_validation_schema.json"
 DETAIL_SUMMARY_PATH = ROOT / "results" / "strategy_validation_summary.csv"
 STRATEGY_SUMMARY_PATH = ROOT / "results" / "strategy_validation_strategy_summary.csv"
@@ -106,6 +107,87 @@ def load_schema() -> dict[str, object]:
     """读取字段配置。"""
     with SCHEMA_PATH.open("r", encoding="utf-8") as file:
         return json.load(file)
+
+
+def load_settlements() -> list[dict[str, str]]:
+    """读取独立追加的结算记录；文件不存在时返回空列表。"""
+    if not SETTLEMENTS_PATH.exists():
+        return []
+    with SETTLEMENTS_PATH.open("r", encoding="utf-8-sig", newline="") as file:
+        return list(csv.DictReader(file))
+
+
+def validate_settlements(
+    rows: list[dict[str, str]],
+    schema: dict[str, object],
+    signal_rows: list[dict[str, str]],
+) -> list[str]:
+    """校验结算记录，并确认每条结算都能找到对应信号。"""
+    issues: list[str] = []
+    columns = list(schema.get("settlement_columns", []))
+    key_columns = list(schema.get("settlement_key", []))
+    if rows and any(column not in rows[0] for column in columns):
+        issues.append("结算文件缺少字段")
+        return issues
+
+    signal_keys = {
+        (row.get("日期", "").strip(), row.get("股票代码", "").strip())
+        for row in signal_rows
+    }
+    seen_keys: set[tuple[str, ...]] = set()
+    for line_number, row in enumerate(rows, start=2):
+        key = tuple((row.get(column, "") or "").strip() for column in key_columns)
+        if key in seen_keys:
+            issues.append(f"结算文件第 {line_number} 行重复: {key}")
+        seen_keys.add(key)
+        if key not in signal_keys:
+            issues.append(f"结算文件第 {line_number} 行找不到对应信号: {key}")
+
+        sell_date = (row.get("卖出日期", "") or "").strip()
+        try:
+            parse_date(sell_date)
+        except ValueError:
+            issues.append(f"结算文件第 {line_number} 行日期格式错误: {sell_date}")
+
+        try:
+            return_pct = parse_float(row.get("收益率%", ""))
+        except ValueError:
+            issues.append(f"结算文件第 {line_number} 行收益率不是数字")
+            continue
+
+        if return_pct is None:
+            issues.append(f"结算文件第 {line_number} 行缺少收益率")
+            continue
+        expected_profit = "是" if return_pct > 0 else "否"
+        if (row.get("是否盈利", "") or "").strip() != expected_profit:
+            issues.append(f"结算文件第 {line_number} 行收益率与是否盈利不一致")
+
+    return issues
+
+
+def apply_settlements(
+    signal_rows: list[dict[str, str]],
+    settlement_rows: list[dict[str, str]],
+) -> list[dict[str, str]]:
+    """把独立结算记录合并到信号行，不修改原始信号文件。"""
+    settlement_map = {
+        (row.get("信号日期", "").strip(), row.get("股票代码", "").strip()): row
+        for row in settlement_rows
+    }
+    merged_rows: list[dict[str, str]] = []
+    for row in signal_rows:
+        key = (row.get("日期", "").strip(), row.get("股票代码", "").strip())
+        settlement = settlement_map.get(key)
+        merged = row.copy()
+        if settlement:
+            merged["卖出日期"] = settlement.get("卖出日期", "")
+            merged["卖出均价"] = settlement.get("卖出均价", "")
+            merged["收益率%"] = settlement.get("收益率%", "")
+            merged["是否盈利"] = settlement.get("是否盈利", "")
+            if settlement.get("备注"):
+                merged["备注"] = settlement["备注"]
+        merged_rows.append(merged)
+    return merged_rows
 
 
 def validate_rows(rows: list[dict[str, str]], schema: dict[str, object]) -> list[str]:
@@ -271,15 +353,18 @@ def main() -> None:
     """执行校验、标准化和汇总。"""
     schema = load_schema()
     with INPUT_PATH.open("r", encoding="utf-8-sig", newline="") as file:
-        rows = list(csv.DictReader(file))
+        signal_rows = list(csv.DictReader(file))
+    settlement_rows = load_settlements()
 
-    issues = validate_rows(rows, schema)
+    issues = validate_rows(signal_rows, schema)
+    issues.extend(validate_settlements(settlement_rows, schema, signal_rows))
     if issues:
         print("数据校验失败:")
         for issue in issues:
             print(f"- {issue}")
         sys.exit(1)
 
+    rows = apply_settlements(signal_rows, settlement_rows)
     status_rows = [{**row, "交易状态": trade_status(row)} for row in rows]
     status_columns = list(schema["required_columns"]) + ["交易状态"]
     write_csv(STATUS_PATH, status_rows, status_columns)
@@ -330,6 +415,7 @@ def main() -> None:
     pending = [row for row in rows if is_pending(row)]
     print("数据校验通过")
     print(f"逐笔记录: {len(rows)}")
+    print(f"结算记录: {len(settlement_rows)}")
     print(f"已完成: {len(completed)}")
     print(f"待卖出: {len(pending)}")
     print(f"标准化数据: {STATUS_PATH}")
