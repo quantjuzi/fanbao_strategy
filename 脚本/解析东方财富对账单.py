@@ -579,7 +579,6 @@ def write_markdown_view(
             "## 文件入口",
             "",
             "- `结果/实盘成交明细_脱敏.csv`",
-            "- `结果/实盘成交明细_脱敏.xlsx`",
         ]
     )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -599,16 +598,6 @@ def main() -> None:
         index=False,
         encoding="utf-8-sig",
     )
-    excel_path = args.output.with_suffix(".xlsx")
-    write_excel(
-        excel_path,
-        public_result,
-        paired,
-        account_summary,
-        unmatched_sell,
-        args.broker_profit,
-        args.initial_capital,
-    )
     markdown_path = args.output.with_suffix(".md")
     write_markdown_view(
         markdown_path,
@@ -627,7 +616,6 @@ def main() -> None:
     print(f"日期范围：{result['交易日期'].min()} 至 "
           f"{result['交易日期'].max()}")
     print(f"输出文件：{args.output}")
-    print(f"Excel文件：{excel_path}")
     print(f"Markdown文件：{markdown_path}")
     print(
         f"已实现净盈亏：{paired['净盈亏金额'].sum():.2f}"
