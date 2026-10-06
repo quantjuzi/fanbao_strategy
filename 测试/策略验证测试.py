@@ -8,8 +8,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULE_PATH = ROOT / "脚本" / "strategy_validation.py"
-SPEC = importlib.util.spec_from_file_location("strategy_validation", MODULE_PATH)
+MODULE_PATH = ROOT / "脚本" / "策略验证.py"
+SPEC = importlib.util.spec_from_file_location("策略验证", MODULE_PATH)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(MODULE)
@@ -32,7 +32,7 @@ class StrategyValidationTests(unittest.TestCase):
 
     def test_validate_rows_rejects_duplicate_key(self) -> None:
         schema = MODULE.load_schema()
-        with (ROOT / "结果" / "strategy_validation.csv").open(
+        with (ROOT / "结果" / "策略验证明细.csv").open(
             "r", encoding="utf-8-sig", newline=""
         ) as file:
             row = next(csv.DictReader(file))

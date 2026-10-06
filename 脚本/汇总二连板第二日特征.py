@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from summarize_two_board_third_day_auction import calculate_metrics
+from 汇总二连板第三日竞价 import calculate_metrics
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]

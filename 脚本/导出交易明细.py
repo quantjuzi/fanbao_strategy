@@ -13,8 +13,8 @@ SOURCE = Path(
     r'\年化最高版_67笔交易清单.csv'
 )
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / '结果'
-CSV_PATH = OUTPUT_DIR / 'public_strategy_trades.csv'
-EXCEL_PATH = OUTPUT_DIR / 'public_strategy_trades.xlsx'
+CSV_PATH = OUTPUT_DIR / '交易明细.csv'
+EXCEL_PATH = OUTPUT_DIR / '交易明细.xlsx'
 
 
 def main() -> None:

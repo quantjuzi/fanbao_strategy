@@ -10,7 +10,7 @@ import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULE_PATH = ROOT / "回测" / "trend_gap_backtest.py"
+MODULE_PATH = ROOT / "回测" / "高开均线回测.py"
 SPEC = importlib.util.spec_from_file_location(
     "trend_gap_backtest",
     MODULE_PATH,

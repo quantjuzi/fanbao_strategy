@@ -5,15 +5,15 @@
   "experiments": [
     {
       "name": "第三日竞价区间",
-      "group_file": "factor_auction_groups.csv",
+      "group_file": "第三日竞价分组.csv",
       "baseline": "二连板及以上，前两个涨停日是否开板不限，第三日竞价低于+2%时买入",
       "changed_factor": "第三日竞价涨幅",
       "fixed_conditions": "样本区间、连板层级、买卖时点、交易成本和两万元固定仓位保持不变",
       "sample_note": "全市场二连板及以上样本，按第三日竞价区间分组；开板状态不参与本组筛选",
       "data_note": "日线数据计算连板、竞价和收益；开板次数来自5分钟线近似，不是Tick/L1/L2精确值",
       "source_scripts": [
-        "脚本/compare_two_board_open_flags.py",
-        "脚本/summarize_two_board_third_day_auction.py"
+        "脚本/二连板开板状态统计.py",
+        "脚本/汇总二连板第三日竞价.py"
       ],
       "ratings": {
         "低于-2%": "正向，但资金占用较高",
@@ -28,15 +28,15 @@
     },
     {
       "name": "第二天成交额区间",
-      "group_file": "factor_amount_groups.csv",
+      "group_file": "第二天成交额分组.csv",
       "baseline": "二连板及以上，第三日竞价低于+2%时买入",
       "changed_factor": "第二天成交额",
       "fixed_conditions": "连板层级、第三日竞价买入条件、买卖时点、交易成本和两万元固定仓位保持不变",
       "sample_note": "同一批二连板及以上低竞价样本，只把第二天成交额拆成不同区间",
       "data_note": "成交额来自日线，单位为亿元；不同区间的样本数差异较大",
       "source_scripts": [
-        "脚本/compare_two_board_open_flags.py",
-        "脚本/summarize_all_two_board_second_day.py"
+        "脚本/二连板开板状态统计.py",
+        "脚本/汇总二连板第二日特征.py"
       ],
       "ratings": {
         "小于5亿": "负向",
@@ -55,15 +55,15 @@
     },
     {
       "name": "涨停日开板次数",
-      "group_file": "factor_open_count_groups.csv",
+      "group_file": "涨停日开板次数分组.csv",
       "baseline": "首板后第二日断板，成交额大于6亿元、M7/M14大于1、实体涨幅大于1%",
       "changed_factor": "涨停日开板次数",
       "fixed_conditions": "首板断板条件、成交额、均线比值、实体涨幅、买卖时点和交易成本保持不变",
       "sample_note": "单板反包样本，按涨停日检测到的开板次数分组",
       "data_note": "开板次数来自5分钟线近似统计，无法识别同一分钟内反复打开；2次和3次以上组样本较少",
       "source_scripts": [
-        "脚本/fetch_limit_open_counts.py",
-        "脚本/compare_single_board_open_counts.py"
+        "脚本/抓取开板次数.py",
+        "脚本/单板开板次数统计.py"
       ],
       "ratings": {
         "开板0次": "负向",

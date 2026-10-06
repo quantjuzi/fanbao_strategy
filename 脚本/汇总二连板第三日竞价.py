@@ -10,7 +10,7 @@ from types import ModuleType
 
 import pandas as pd
 
-from compare_capital_versions import max_concurrent_positions
+from 资金周转对比 import max_concurrent_positions
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
@@ -110,7 +110,7 @@ def main() -> None:
     """执行竞价区间绩效统计。"""
 
     strategy = load_strategy_module(
-        PROJECT_DIR / '脚本' / 'high_open_ma_workflow_backtest.py'
+        PROJECT_DIR / '脚本' / '高开均线完整回测.py'
     )
     data = pd.read_csv(SOURCE, encoding='utf-8-sig')
     data = data.loc[data['竞价涨幅'].lt(2)].copy()

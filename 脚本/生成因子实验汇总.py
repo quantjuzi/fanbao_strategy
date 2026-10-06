@@ -18,9 +18,10 @@ import pandas as pd
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
-DEFAULT_CONFIG = PROJECT_DIR / "配置" / "factor_experiments.json"
-DEFAULT_OUTPUT = PROJECT_DIR / "结果" / "factor_experiment_summary.csv"
+DEFAULT_CONFIG = PROJECT_DIR / "配置" / "因子实验配置.json"
+DEFAULT_OUTPUT = PROJECT_DIR / "结果" / "因子实验汇总.csv"
 DEFAULT_DOC = PROJECT_DIR / "文档" / "因子实验对照表.md"
+DEFAULT_CHANGE_DOC = PROJECT_DIR / "文档" / "逐因子变化汇总.md"
 
 NUMERIC_COLUMNS = [
     "交易数",
@@ -332,7 +333,7 @@ def build_markdown(config: dict[str, Any], summary: pd.DataFrame) -> str:
     lines = [
         "# 因子实验对照表",
         "",
-        "本文件由 `脚本/build_factor_experiment_report.py` 自动生成。",
+        "本文件由 `脚本/生成因子实验汇总.py` 自动生成。",
         "每个实验先列基准，再只改变一个因子，其他条件尽量保持不变。",
         "",
         "## 统一口径",
@@ -401,6 +402,46 @@ def build_markdown(config: dict[str, Any], summary: pd.DataFrame) -> str:
     return "\n".join(lines) + "\n"
 
 
+def build_change_markdown(summary: pd.DataFrame) -> str:
+    """生成所有因子变化的紧凑汇总。"""
+
+    lines = [
+        "# 逐因子变化汇总",
+        "",
+        "每一行只改变一个因子，其他条件保持不变。变化值均相对该实验基准计算。",
+        "",
+        "| 实验 | 只改因子 | 因子取值 | 交易数 | 净胜率 | 相对基准胜率 | 平均净收益率 | 相对基准平均收益 | 方向评级 |",
+        "|---|---|---|---:|---:|---:|---:|---:|---|",
+    ]
+    for _, row in summary.iterrows():
+        lines.append(
+            "| {experiment} | {factor} | {value} | {trades} | "
+            "{win_rate}% | {win_delta:+.2f}个百分点 | "
+            "{avg_return}% | {return_delta:+.4f}个百分点 | {rating} |".format(
+                experiment=row["实验"],
+                factor=row["只改因子"],
+                value=row["因子取值"],
+                trades=int(row["交易数"]),
+                win_rate=format_number(row["净胜率"]),
+                win_delta=row["相对基准净胜率变化"],
+                avg_return=format_number(row["平均净收益率"], 4),
+                return_delta=row["相对基准平均收益变化"],
+                rating=row["方向评级"],
+            )
+        )
+    lines.extend(
+        [
+            "",
+            "## 结论",
+            "",
+            "- 正向并不等于未来一定有效，只表示在当前样本中相对基准更好。",
+            "- 负向结果同样保留，避免只选择表现好的分组。",
+            "- 样本数较少的分组需要结合样本外测试再决定是否采用。",
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
 def parse_args() -> argparse.Namespace:
     """读取命令行参数。"""
 
@@ -440,9 +481,14 @@ def main() -> None:
         build_markdown(config, summary),
         encoding="utf-8",
     )
+    DEFAULT_CHANGE_DOC.write_text(
+        build_change_markdown(summary),
+        encoding="utf-8",
+    )
 
     print(f"已生成因子实验汇总：{args.output}")
     print(f"已生成因子实验说明：{args.doc}")
+    print(f"已生成逐因子变化汇总：{DEFAULT_CHANGE_DOC}")
     print(
         summary[
             [

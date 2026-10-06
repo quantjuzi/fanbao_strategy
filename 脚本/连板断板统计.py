@@ -12,7 +12,7 @@ import pandas as pd
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
-STRATEGY_PATH = PROJECT_DIR / '脚本' / 'high_open_ma_workflow_backtest.py'
+STRATEGY_PATH = PROJECT_DIR / '脚本' / '高开均线完整回测.py'
 DATA_PATH = PROJECT_DIR / '数据' / '聚宽因子_2026-01-01_2026-09-30.csv'
 OUTPUT_DIR = (
     Path(r'C:\Users\Administrator\PyCharmMiscProject')
