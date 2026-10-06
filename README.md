@@ -21,7 +21,7 @@
 5. 结果分为正向、中性、负向和样本不足，不把高胜率的小样本直接当成结论
 6. 从市场行为解释结果，例如竞价强弱代表开盘承接，成交额代表流动性和关注度，开板次数反映封板稳定性
 
-详细方法见 [研究设计](./文档/research_design.md)。
+详细方法见 [研究设计](./文档/研究设计.md)。
 
 ## 核心实现
 
@@ -82,8 +82,8 @@ python 回测/trend_gap_backtest.py
 
 详细记录：
 
-- [因子研究记录](./文档/factor_research_summary.md)
-- [因子实验对照表](./文档/factor_experiment_table.md)
+- [因子研究记录](./文档/因子研究记录.md)
+- [因子实验对照表](./文档/因子实验对照表.md)
 - [因子实验汇总](./结果/factor_experiment_summary.csv)
 - [第三日竞价分组数据](./结果/factor_auction_groups.csv)
 - [成交额分组数据](./结果/factor_amount_groups.csv)
@@ -120,8 +120,8 @@ python 回测/trend_gap_backtest.py
 - [策略汇总](./结果/strategy_validation_strategy_summary.csv)
 - [统计脚本](./脚本/strategy_validation.py)
 - [字段规范](./配置/strategy_validation_schema.json)
-- [验证工作流](./文档/strategy_validation_workflow.md)
-- [短线因子说明](./文档/short_term_factor_guide.md)
+- [验证工作流](./文档/策略验证流程.md)
+- [短线因子说明](./文档/短线因子说明.md)
 
 ## 技术栈
 

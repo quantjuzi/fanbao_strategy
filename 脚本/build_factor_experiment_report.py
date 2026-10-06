@@ -20,7 +20,7 @@ import pandas as pd
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = PROJECT_DIR / "配置" / "factor_experiments.json"
 DEFAULT_OUTPUT = PROJECT_DIR / "结果" / "factor_experiment_summary.csv"
-DEFAULT_DOC = PROJECT_DIR / "文档" / "factor_experiment_table.md"
+DEFAULT_DOC = PROJECT_DIR / "文档" / "因子实验对照表.md"
 
 NUMERIC_COLUMNS = [
     "交易数",
