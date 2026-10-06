@@ -1,16 +1,37 @@
-﻿__pycache__/
+__pycache__/
 *.pyc
 .DS_Store
 
 .env
 *.csv
-data/*.csv
-reports/*.png
+数据/*.csv
+报告/*.png
 
-!results/strategy_validation.csv
-!results/strategy_validation_settlements.csv
-!results/strategy_validation_summary.csv
-!results/strategy_validation_strategy_summary.csv
-!results/strategy_validation_status.csv
+!结果/strategy_validation.csv
+!结果/strategy_validation_settlements.csv
+!结果/strategy_validation_summary.csv
+!结果/strategy_validation_strategy_summary.csv
+!结果/strategy_validation_status.csv
 
 private/
+
+数据/minute_cache/
+数据/single_board_minute_cache/
+数据/two_board_minute_cache/
+
+# 本地学习和练习资料，不作为公开研究项目的一部分
+教程/
+workflow/
+outputs/
+work/
+报告/
+模板/
+
+!结果/factor_experiment_summary.csv
+!结果/factor_amount_groups.csv
+!结果/factor_auction_groups.csv
+!结果/factor_open_count_groups.csv
+!结果/public_strategy_trades.csv
+
+*收益曲线*.jpg
+*收益曲线*.png
