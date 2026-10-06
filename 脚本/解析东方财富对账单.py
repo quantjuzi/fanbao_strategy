@@ -51,6 +51,12 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="东方财富展示的净盈亏，已包含手续费。",
     )
+    parser.add_argument(
+        "--initial-capital",
+        type=float,
+        default=None,
+        help="用于展示的初始本金。",
+    )
     return parser.parse_args()
 
 
@@ -253,6 +259,7 @@ def write_excel(
     account_summary: dict[str, float],
     unmatched_sell: float,
     broker_profit: float | None,
+    initial_capital: float | None,
 ) -> None:
     """输出成交明细、汇总和月度统计。"""
 
@@ -297,8 +304,13 @@ def write_excel(
             "值": broker_profit + data["总费用"].sum(),
         }
         summary.loc[len(summary)] = {
-            "指标": "扣除手续费后的总盈利",
+            "指标": "最终总盈利（已扣费用）",
             "值": broker_profit,
+        }
+    if initial_capital is not None:
+        summary.loc[len(summary)] = {
+            "指标": "初始本金（展示口径）",
+            "值": initial_capital,
         }
     detail_view = data[
         [
@@ -474,6 +486,7 @@ def write_markdown_view(
     paired: pd.DataFrame,
     account_summary: dict[str, float],
     broker_profit: float | None,
+    initial_capital: float | None,
 ) -> None:
     """生成适合GitHub网页阅读的Markdown表格。"""
 
@@ -491,7 +504,11 @@ def write_markdown_view(
             ("盈利（未扣费用）", broker_profit + data["总费用"].sum())
         )
         summary_rows.append(
-            ("扣除手续费后的总盈利", broker_profit)
+            ("最终总盈利（已扣费用）", broker_profit)
+        )
+    if initial_capital is not None:
+        summary_rows.append(
+            ("初始本金（展示口径）", initial_capital)
         )
 
     preview = data[
@@ -586,6 +603,7 @@ def main() -> None:
         account_summary,
         unmatched_sell,
         args.broker_profit,
+        args.initial_capital,
     )
     markdown_path = args.output.with_suffix(".md")
     write_markdown_view(
@@ -594,6 +612,7 @@ def main() -> None:
         paired,
         account_summary,
         args.broker_profit,
+        args.initial_capital,
     )
 
     print(
