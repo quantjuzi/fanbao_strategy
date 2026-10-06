@@ -45,6 +45,12 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pdf", type=Path, required=True)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument(
+        "--broker-profit",
+        type=float,
+        default=None,
+        help="东方财富展示的净盈亏，已包含手续费。",
+    )
     return parser.parse_args()
 
 
@@ -239,6 +245,7 @@ def write_excel(
     paired: pd.DataFrame,
     account_summary: dict[str, float],
     unmatched_sell: float,
+    broker_profit: float | None,
 ) -> None:
     """输出成交明细、汇总和月度统计。"""
 
@@ -268,7 +275,7 @@ def write_excel(
                 "值": data["资金发生额"].sum(),
             },
             {
-                "指标": "已实现净盈亏",
+                "指标": "程序配对已实现盈亏（仅供参考）",
                 "值": paired["净盈亏金额"].sum()
                 if not paired.empty
                 else 0.0,
@@ -277,24 +284,13 @@ def write_excel(
                 "指标": "未匹配卖出数量",
                 "值": unmatched_sell,
             },
-            {
-                "指标": "期初现金估算",
-                "值": account_summary["期初现金估算"],
-            },
-            {
-                "指标": "银证净转入",
-                "值": account_summary["银证净转入"],
-            },
-            {
-                "指标": "期末总资产",
-                "值": account_summary["期末总资产"],
-            },
-            {
-                "指标": "账户总盈亏估算",
-                "值": account_summary["账户总盈亏估算"],
-            },
         ]
     )
+    if broker_profit is not None:
+        summary.loc[len(summary)] = {
+            "指标": "东方财富净盈亏（含费用）",
+            "值": broker_profit,
+        }
     detail_view = data[
         [
             "交易日期",
@@ -441,6 +437,7 @@ def main() -> None:
         paired,
         account_summary,
         unmatched_sell,
+        args.broker_profit,
     )
 
     print(
@@ -458,7 +455,8 @@ def main() -> None:
         else "已实现净盈亏：0.00"
     )
     print(f"总费用：{result['总费用'].sum():.2f}")
-    print(f"账户总盈亏估算：{account_summary['账户总盈亏估算']:.2f}")
+    if args.broker_profit is not None:
+        print(f"东方财富净盈亏（含费用）：{args.broker_profit:.2f}")
 
 
 if __name__ == "__main__":
