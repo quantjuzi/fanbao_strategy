@@ -11,8 +11,8 @@ from pathlib import Path
 import baostock as bs
 import pandas as pd
 
-from compare_board_break import metric_row
-from fetch_limit_open_counts import (
+from 连板断板统计 import metric_row
+from 抓取开板次数 import (
     count_open_episodes,
     fetch_minutes,
     to_baostock_code,
@@ -195,7 +195,7 @@ def main() -> None:
     # 使用主策略的成本函数。
     import importlib.util
 
-    strategy_path = PROJECT_DIR / '脚本' / 'high_open_ma_workflow_backtest.py'
+    strategy_path = PROJECT_DIR / '脚本' / '高开均线完整回测.py'
     spec = importlib.util.spec_from_file_location('单板开板统计模块', strategy_path)
     if spec is None or spec.loader is None:
         raise ImportError(f'无法导入策略模块：{strategy_path}')

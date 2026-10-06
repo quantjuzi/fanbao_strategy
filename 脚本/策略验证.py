@@ -21,12 +21,12 @@ from typing import Iterable
 
 
 ROOT = Path(__file__).resolve().parents[1]
-INPUT_PATH = ROOT / "结果" / "strategy_validation.csv"
-SETTLEMENTS_PATH = ROOT / "结果" / "strategy_validation_settlements.csv"
-SCHEMA_PATH = ROOT / "配置" / "strategy_validation_schema.json"
-DETAIL_SUMMARY_PATH = ROOT / "结果" / "strategy_validation_summary.csv"
-STRATEGY_SUMMARY_PATH = ROOT / "结果" / "strategy_validation_strategy_summary.csv"
-STATUS_PATH = ROOT / "结果" / "strategy_validation_status.csv"
+INPUT_PATH = ROOT / "结果" / "策略验证明细.csv"
+SETTLEMENTS_PATH = ROOT / "结果" / "策略验证结算.csv"
+SCHEMA_PATH = ROOT / "配置" / "策略验证字段规范.json"
+DETAIL_SUMMARY_PATH = ROOT / "结果" / "策略验证分组汇总.csv"
+STRATEGY_SUMMARY_PATH = ROOT / "结果" / "连板反包汇总.csv"
+STATUS_PATH = ROOT / "结果" / "策略验证状态.csv"
 
 
 def parse_float(value: str) -> float | None:

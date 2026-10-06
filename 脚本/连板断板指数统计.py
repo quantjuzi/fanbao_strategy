@@ -11,11 +11,11 @@ from types import ModuleType
 import baostock as bs
 import pandas as pd
 
-from compare_board_break import consecutive_limit_count, metric_row
+from 连板断板统计 import consecutive_limit_count, metric_row
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
-STRATEGY_PATH = PROJECT_DIR / '脚本' / 'high_open_ma_workflow_backtest.py'
+STRATEGY_PATH = PROJECT_DIR / '脚本' / '高开均线完整回测.py'
 DATA_PATH = PROJECT_DIR / '数据' / '聚宽因子_2026-01-01_2026-09-30.csv'
 OUTPUT_PATH = (
     Path(r'C:\Users\Administrator\PyCharmMiscProject')

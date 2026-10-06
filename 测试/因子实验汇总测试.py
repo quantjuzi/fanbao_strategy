@@ -9,7 +9,7 @@ import pandas as pd
 
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULE_PATH = ROOT / "脚本" / "build_factor_experiment_report.py"
+MODULE_PATH = ROOT / "脚本" / "生成因子实验汇总.py"
 SPEC = importlib.util.spec_from_file_location(
     "factor_experiment_report",
     MODULE_PATH,

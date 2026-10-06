@@ -5,7 +5,7 @@
 输出列包含 isST、tradestatus，方便回测脚本自己计算涨停价和炸板信号。
 
 用法:
-    python 脚本/download_baostock_daily.py --start 2026-07-01 --end 2026-07-31
+    python 脚本/下载日线数据.py --start 2026-07-01 --end 2026-07-31
 """
 
 from __future__ import annotations

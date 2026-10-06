@@ -7,11 +7,11 @@ __pycache__/
 数据/*.csv
 报告/*.png
 
-!结果/strategy_validation.csv
-!结果/strategy_validation_settlements.csv
-!结果/strategy_validation_summary.csv
-!结果/strategy_validation_strategy_summary.csv
-!结果/strategy_validation_status.csv
+!结果/策略验证明细.csv
+!结果/策略验证结算.csv
+!结果/策略验证分组汇总.csv
+!结果/连板反包汇总.csv
+!结果/策略验证状态.csv
 
 private/
 
@@ -27,11 +27,13 @@ work/
 报告/
 模板/
 
-!结果/factor_experiment_summary.csv
-!结果/factor_amount_groups.csv
-!结果/factor_auction_groups.csv
-!结果/factor_open_count_groups.csv
-!结果/public_strategy_trades.csv
+!结果/因子实验汇总.csv
+!结果/第二天成交额分组.csv
+!结果/第三日竞价分组.csv
+!结果/涨停日开板次数分组.csv
+!结果/策略一_连板断板_交易明细.csv
+!结果/策略二_单板反包_交易明细.csv
+!结果/两个策略绩效汇总.csv
 
 *收益曲线*.jpg
 *收益曲线*.png
