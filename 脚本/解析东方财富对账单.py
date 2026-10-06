@@ -309,6 +309,9 @@ def write_excel(
             "成交数量",
             "成交价格",
             "成交金额",
+            "手续费",
+            "印花税",
+            "过户费",
             "总费用",
         ]
     ].copy()
@@ -500,6 +503,9 @@ def write_markdown_view(
             "成交数量",
             "成交价格",
             "成交金额",
+            "手续费",
+            "印花税",
+            "过户费",
             "总费用",
         ]
     ].copy()
@@ -523,14 +529,16 @@ def write_markdown_view(
             "",
         "## 完整成交明细",
             "",
-            "| 交易日期 | 方向 | 证券代码 | 证券名称 | 成交数量 | 成交价格 | 成交金额 | 总费用 |",
-            "|---|---|---|---|---:|---:|---:|---:|",
+            "| 交易日期 | 方向 | 证券代码 | 证券名称 | 成交数量 | 成交价格 | 成交金额 | 手续费 | 印花税 | 过户费 | 总费用 |",
+            "|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|",
         ]
     )
     for _, row in preview.iterrows():
         lines.append(
             "| {date} | {direction} | {code} | {name} | "
-            "{quantity:,} | {price:.4f} | {amount:,.2f} | {fee:,.2f} |".format(
+            "{quantity:,} | {price:.4f} | {amount:,.2f} | "
+            "{commission:,.2f} | {stamp:,.2f} | {transfer:,.2f} | "
+            "{total_fee:,.2f} |".format(
                 date=row["交易日期"].strftime("%Y-%m-%d"),
                 direction=row["方向"],
                 code=row["证券代码"],
@@ -538,7 +546,10 @@ def write_markdown_view(
                 quantity=int(row["成交数量"]),
                 price=row["成交价格"],
                 amount=row["成交金额"],
-                fee=row["总费用"],
+                commission=row["手续费"],
+                stamp=row["印花税"],
+                transfer=row["过户费"],
+                total_fee=row["总费用"],
             )
         )
     lines.extend(
