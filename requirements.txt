@@ -4,3 +4,4 @@ numpy>=1.0
 requests>=2.0
 openpyxl>=3.0
 akshare
+pypdf>=6.0
