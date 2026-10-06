@@ -295,6 +295,34 @@ def write_excel(
             },
         ]
     )
+    detail_view = data[
+        [
+            "交易日期",
+            "方向",
+            "证券代码",
+            "证券名称",
+            "成交数量",
+            "成交价格",
+            "成交金额",
+            "总费用",
+        ]
+    ].copy()
+    paired_view = (
+        paired[
+            [
+                "卖出日期",
+                "证券代码",
+                "证券名称",
+                "配对数量",
+                "加权买入成本",
+                "卖出价格",
+                "净盈亏金额",
+                "净收益率",
+            ]
+        ].copy()
+        if not paired.empty
+        else paired
+    )
     monthly = data.copy()
     monthly["月份"] = monthly["交易日期"].dt.to_period("M").astype(str)
     monthly = (
@@ -329,8 +357,8 @@ def write_excel(
         ].sum()
 
     with pd.ExcelWriter(path, engine="openpyxl") as writer:
-        data.to_excel(writer, sheet_name="成交明细", index=False)
-        paired.to_excel(writer, sheet_name="配对明细", index=False)
+        detail_view.to_excel(writer, sheet_name="成交明细", index=False)
+        paired_view.to_excel(writer, sheet_name="配对明细", index=False)
         summary.to_excel(writer, sheet_name="汇总", index=False)
         monthly.to_excel(writer, sheet_name="月度统计", index=False)
 
@@ -348,7 +376,7 @@ def write_excel(
         row[headers["交易日期"] - 1].number_format = "yyyy-mm-dd"
         row[headers["成交数量"] - 1].number_format = "#,##0"
         row[headers["成交价格"] - 1].number_format = "0.0000"
-        for name in ["资金发生额", "成交金额", "手续费", "印花税", "过户费"]:
+        for name in ["成交金额", "总费用"]:
             row[headers[name] - 1].number_format = "#,##0.00"
         direction = row[headers["方向"] - 1].value
         color = "C00000" if direction == "买入" else "2E7D32"
@@ -364,12 +392,8 @@ def write_excel(
         "证券名称": 14,
         "成交数量": 12,
         "成交价格": 12,
-        "资金发生额": 14,
         "成交金额": 14,
-        "手续费": 10,
-        "印花税": 10,
-        "过户费": 10,
-        "原始业务类型": 14,
+        "总费用": 10,
     }
     for name, width in widths.items():
         detail.column_dimensions[
