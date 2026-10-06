@@ -598,16 +598,6 @@ def main() -> None:
         index=False,
         encoding="utf-8-sig",
     )
-    markdown_path = args.output.with_suffix(".md")
-    write_markdown_view(
-        markdown_path,
-        public_result,
-        paired,
-        account_summary,
-        args.broker_profit,
-        args.initial_capital,
-    )
-
     print(
         f"解析完成：{len(result)} 条成交记录，"
         f"买入 {(result['方向'] == '买入').sum()} 条，"
@@ -616,7 +606,6 @@ def main() -> None:
     print(f"日期范围：{result['交易日期'].min()} 至 "
           f"{result['交易日期'].max()}")
     print(f"输出文件：{args.output}")
-    print(f"Markdown文件：{markdown_path}")
     print(
         f"已实现净盈亏：{paired['净盈亏金额'].sum():.2f}"
         if not paired.empty
