@@ -164,6 +164,13 @@ def main() -> None:
         "统计区间：2026-08-01 至 2026-09-30。",
         "卖出价格沿用两个策略原始回测口径，即卖出日成交均价并扣除滑点。",
         "",
+        "## 两种模式简写",
+        "",
+        "- 连板断板承接：2连板以上断板后，下一交易日开盘买入，再次日成交均价卖出。",
+        "- 单板反包开板2次：首板后断板，按反包模式下一交易日开盘买入，再次日成交均价卖出。",
+        "",
+        "这里不额外叠加题材、情绪或新的过滤条件，只比较两种模式在不同市场月份下的整体统计变化。",
+        "",
         "| 策略 | 区间 | 交易数 | 净胜率 | 平均净收益率 | 盈亏比 | 按两万元每笔累计盈亏 |",
         "|---|---|---:|---:|---:|---:|---:|",
     ]
@@ -178,6 +185,45 @@ def main() -> None:
                 avg_return=row["平均净收益率"],
                 ratio=row["盈亏比"],
                 pnl=row["按两万元每笔累计盈亏"],
+            )
+        )
+    lines.extend(
+        [
+            "",
+            "## 大白比较",
+            "",
+            "| 区间 | 深证成指 | 连板断板平均收益 | 单板反包平均收益 | 相对更好 |",
+            "|---|---:|---:|---:|---|",
+        ]
+    )
+    for period in ["2026-08", "2026-09", "8月到9月合计"]:
+        period_rows = result.loc[result["区间"].eq(period)]
+        stock_row = period_rows.loc[
+            period_rows["策略"].eq("连板断板承接")
+        ].iloc[0]
+        reversal_row = period_rows.loc[
+            period_rows["策略"].eq("单板反包开板2次")
+        ].iloc[0]
+        if index_context.empty:
+            index_return = 0.0
+        else:
+            index_return = index_context.loc[
+                index_context["区间"].eq(period),
+                "深证成指收益",
+            ].iloc[0]
+        better = (
+            "连板断板承接"
+            if stock_row["平均净收益率"] > reversal_row["平均净收益率"]
+            else "单板反包开板2次"
+        )
+        lines.append(
+            "| {period} | {index_return:+.2f}% | {stock_return:+.4f}% | "
+            "{reversal_return:+.4f}% | {better} |".format(
+                period=period,
+                index_return=index_return,
+                stock_return=stock_row["平均净收益率"],
+                reversal_return=reversal_row["平均净收益率"],
+                better=better,
             )
         )
     if not index_context.empty:
