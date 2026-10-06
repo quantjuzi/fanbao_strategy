@@ -385,6 +385,14 @@ def write_excel(
         monthly.to_excel(writer, sheet_name="月度统计", index=False)
 
     workbook = load_workbook(path)
+    paired_sheet = workbook["配对明细"]
+    paired_headers = {
+        cell.value: cell.column
+        for cell in paired_sheet[1]
+    }
+    for row in paired_sheet.iter_rows(min_row=2):
+        if "证券代码" in paired_headers:
+            row[paired_headers["证券代码"] - 1].number_format = "@"
     detail = workbook["成交明细"]
     detail.freeze_panes = "A2"
     detail.auto_filter.ref = detail.dimensions
@@ -396,6 +404,7 @@ def write_excel(
     headers = {cell.value: cell.column for cell in detail[1]}
     for row in detail.iter_rows(min_row=2):
         row[headers["交易日期"] - 1].number_format = "yyyy-mm-dd"
+        row[headers["证券代码"] - 1].number_format = "@"
         row[headers["成交数量"] - 1].number_format = "#,##0"
         row[headers["成交价格"] - 1].number_format = "0.0000"
         for name in ["成交金额", "总费用"]:
@@ -426,6 +435,7 @@ def write_excel(
     fee_headers = {cell.value: cell.column for cell in fee_sheet[1]}
     for row in fee_sheet.iter_rows(min_row=2):
         row[fee_headers["交易日期"] - 1].number_format = "yyyy-mm-dd"
+        row[fee_headers["证券代码"] - 1].number_format = "@"
         for name in ["成交金额", "手续费", "印花税", "过户费", "总费用"]:
             row[fee_headers[name] - 1].number_format = "#,##0.00"
 
