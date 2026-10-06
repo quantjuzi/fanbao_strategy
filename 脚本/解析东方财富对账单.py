@@ -12,6 +12,8 @@ import re
 from pathlib import Path
 
 import pandas as pd
+from openpyxl import load_workbook
+from openpyxl.styles import Alignment, Font, PatternFill
 from pypdf import PdfReader
 
 
@@ -102,6 +104,135 @@ def parse_pdf(path: Path) -> pd.DataFrame:
     ).reset_index(drop=True)
 
 
+def write_excel(path: Path, data: pd.DataFrame) -> None:
+    """输出成交明细、汇总和月度统计。"""
+
+    summary = pd.DataFrame(
+        [
+            {"指标": "成交记录", "值": len(data)},
+            {"指标": "买入笔数", "值": data["方向"].eq("买入").sum()},
+            {"指标": "卖出笔数", "值": data["方向"].eq("卖出").sum()},
+            {
+                "指标": "买入金额",
+                "值": data.loc[
+                    data["方向"].eq("买入"), "成交金额"
+                ].sum(),
+            },
+            {
+                "指标": "卖出金额",
+                "值": data.loc[
+                    data["方向"].eq("卖出"), "成交金额"
+                ].sum(),
+            },
+            {"指标": "手续费合计", "值": data["手续费"].sum()},
+            {"指标": "印花税合计", "值": data["印花税"].sum()},
+            {"指标": "过户费合计", "值": data["过户费"].sum()},
+            {
+                "指标": "资金发生额合计",
+                "值": data["资金发生额"].sum(),
+            },
+        ]
+    )
+    monthly = data.copy()
+    monthly["月份"] = monthly["交易日期"].dt.to_period("M").astype(str)
+    monthly = (
+        monthly.groupby("月份")
+        .agg(
+            买入笔数=("方向", lambda values: values.eq("买入").sum()),
+            卖出笔数=("方向", lambda values: values.eq("卖出").sum()),
+            买入金额=(
+                "成交金额",
+                lambda values: 0.0,
+            ),
+            卖出金额=(
+                "成交金额",
+                lambda values: 0.0,
+            ),
+            手续费=("手续费", "sum"),
+            印花税=("印花税", "sum"),
+            过户费=("过户费", "sum"),
+        )
+        .reset_index()
+    )
+    for index, row in monthly.iterrows():
+        month = row["月份"]
+        sample = data.loc[
+            data["交易日期"].dt.to_period("M").astype(str).eq(month)
+        ]
+        monthly.loc[index, "买入金额"] = sample.loc[
+            sample["方向"].eq("买入"), "成交金额"
+        ].sum()
+        monthly.loc[index, "卖出金额"] = sample.loc[
+            sample["方向"].eq("卖出"), "成交金额"
+        ].sum()
+
+    with pd.ExcelWriter(path, engine="openpyxl") as writer:
+        data.to_excel(writer, sheet_name="成交明细", index=False)
+        summary.to_excel(writer, sheet_name="汇总", index=False)
+        monthly.to_excel(writer, sheet_name="月度统计", index=False)
+
+    workbook = load_workbook(path)
+    detail = workbook["成交明细"]
+    detail.freeze_panes = "A2"
+    detail.auto_filter.ref = detail.dimensions
+    for cell in detail[1]:
+        cell.fill = PatternFill("solid", fgColor="24445C")
+        cell.font = Font(color="FFFFFF", bold=True)
+        cell.alignment = Alignment(horizontal="center")
+
+    headers = {cell.value: cell.column for cell in detail[1]}
+    for row in detail.iter_rows(min_row=2):
+        row[headers["交易日期"] - 1].number_format = "yyyy-mm-dd"
+        row[headers["成交数量"] - 1].number_format = "#,##0"
+        row[headers["成交价格"] - 1].number_format = "0.0000"
+        for name in ["资金发生额", "成交金额", "手续费", "印花税", "过户费"]:
+            row[headers[name] - 1].number_format = "#,##0.00"
+        direction = row[headers["方向"] - 1].value
+        color = "C00000" if direction == "买入" else "2E7D32"
+        row[headers["方向"] - 1].font = Font(
+            color=color,
+            bold=True,
+        )
+
+    widths = {
+        "交易日期": 12,
+        "方向": 8,
+        "证券代码": 12,
+        "证券名称": 14,
+        "成交数量": 12,
+        "成交价格": 12,
+        "资金发生额": 14,
+        "成交金额": 14,
+        "手续费": 10,
+        "印花税": 10,
+        "过户费": 10,
+        "原始业务类型": 14,
+    }
+    for name, width in widths.items():
+        detail.column_dimensions[
+            chr(64 + headers[name])
+        ].width = width
+
+    for sheet in ["汇总", "月度统计"]:
+        current = workbook[sheet]
+        current.freeze_panes = "A2"
+        current.auto_filter.ref = current.dimensions
+        for cell in current[1]:
+            cell.fill = PatternFill("solid", fgColor="24445C")
+            cell.font = Font(color="FFFFFF", bold=True)
+            cell.alignment = Alignment(horizontal="center")
+        for column_cells in current.columns:
+            width = max(
+                len(str(cell.value)) if cell.value is not None else 0
+                for cell in column_cells
+            )
+            current.column_dimensions[
+                column_cells[0].column_letter
+            ].width = min(max(width + 2, 10), 18)
+
+    workbook.save(path)
+
+
 def main() -> None:
     """解析PDF并保存脱敏成交明细。"""
 
@@ -113,6 +244,8 @@ def main() -> None:
         index=False,
         encoding="utf-8-sig",
     )
+    excel_path = args.output.with_suffix(".xlsx")
+    write_excel(excel_path, result)
 
     print(
         f"解析完成：{len(result)} 条成交记录，"
@@ -122,6 +255,7 @@ def main() -> None:
     print(f"日期范围：{result['交易日期'].min()} 至 "
           f"{result['交易日期'].max()}")
     print(f"输出文件：{args.output}")
+    print(f"Excel文件：{excel_path}")
 
 
 if __name__ == "__main__":
