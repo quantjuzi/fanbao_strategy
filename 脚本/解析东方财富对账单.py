@@ -309,7 +309,7 @@ def write_excel(
         }
     if initial_capital is not None:
         summary.loc[len(summary)] = {
-            "指标": "初始本金（展示口径）",
+            "指标": "初始资金",
             "值": initial_capital,
         }
     detail_view = data[
@@ -508,7 +508,7 @@ def write_markdown_view(
         )
     if initial_capital is not None:
         summary_rows.append(
-            ("初始本金（展示口径）", initial_capital)
+            ("初始资金", initial_capital)
         )
 
     preview = data[
