@@ -121,6 +121,10 @@ def parse_pdf(path: Path) -> pd.DataFrame:
             "成交数量",
             "成交价格",
             "资金发生额",
+            "手续费",
+            "印花税",
+            "过户费",
+            "资金余额",
         ],
         keep="first",
     )
