@@ -289,25 +289,15 @@ def write_excel(
                 "指标": "总费用合计（三项相加）",
                 "值": data["总费用"].sum(),
             },
-            {
-                "指标": "资金发生额合计",
-                "值": data["资金发生额"].sum(),
-            },
-            {
-                "指标": "程序配对已实现盈亏（仅供参考）",
-                "值": paired["净盈亏金额"].sum()
-                if not paired.empty
-                else 0.0,
-            },
-            {
-                "指标": "未匹配卖出数量",
-                "值": unmatched_sell,
-            },
         ]
     )
     if broker_profit is not None:
         summary.loc[len(summary)] = {
-            "指标": "东方财富净盈亏（含费用）",
+            "指标": "盈利（未扣费用）",
+            "值": broker_profit + data["总费用"].sum(),
+        }
+        summary.loc[len(summary)] = {
+            "指标": "扣除手续费后的总盈利",
             "值": broker_profit,
         }
     detail_view = data[
@@ -492,14 +482,13 @@ def write_markdown_view(
         ("印花税合计", data["印花税"].sum()),
         ("过户费合计", data["过户费"].sum()),
         ("总费用合计", data["总费用"].sum()),
-        (
-            "程序配对已实现盈亏（仅供参考）",
-            paired["净盈亏金额"].sum() if not paired.empty else 0.0,
-        ),
     ]
     if broker_profit is not None:
         summary_rows.append(
-            ("东方财富净盈亏（含费用）", broker_profit)
+            ("盈利（未扣费用）", broker_profit + data["总费用"].sum())
+        )
+        summary_rows.append(
+            ("扣除手续费后的总盈利", broker_profit)
         )
 
     preview = data[
