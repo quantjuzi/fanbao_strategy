@@ -475,6 +475,95 @@ def write_excel(
     workbook.save(path)
 
 
+def write_markdown_view(
+    path: Path,
+    data: pd.DataFrame,
+    paired: pd.DataFrame,
+    account_summary: dict[str, float],
+    broker_profit: float | None,
+) -> None:
+    """生成适合GitHub网页阅读的Markdown表格。"""
+
+    summary_rows = [
+        ("成交记录", len(data)),
+        ("买入笔数", int(data["方向"].eq("买入").sum())),
+        ("卖出笔数", int(data["方向"].eq("卖出").sum())),
+        ("手续费合计", data["手续费"].sum()),
+        ("印花税合计", data["印花税"].sum()),
+        ("过户费合计", data["过户费"].sum()),
+        ("总费用合计", data["总费用"].sum()),
+        (
+            "程序配对已实现盈亏（仅供参考）",
+            paired["净盈亏金额"].sum() if not paired.empty else 0.0,
+        ),
+    ]
+    if broker_profit is not None:
+        summary_rows.append(
+            ("东方财富净盈亏（含费用）", broker_profit)
+        )
+
+    preview = data[
+        [
+            "交易日期",
+            "方向",
+            "证券代码",
+            "证券名称",
+            "成交数量",
+            "成交价格",
+            "成交金额",
+            "总费用",
+        ]
+    ].head(50).copy()
+
+    lines = [
+        "# 实盘成交明细展示",
+        "",
+        "本页是便于在 GitHub 直接阅读的展示版。完整数据请查看 CSV 或下载 Excel。",
+        "",
+        "## 汇总",
+        "",
+        "| 指标 | 数值 |",
+        "|---|---:|",
+    ]
+    lines.extend(
+        f"| {name} | {value:,.2f} |"
+        for name, value in summary_rows
+    )
+    lines.extend(
+        [
+            "",
+            "## 成交预览",
+            "",
+            "| 交易日期 | 方向 | 证券代码 | 证券名称 | 成交数量 | 成交价格 | 成交金额 | 总费用 |",
+            "|---|---|---|---|---:|---:|---:|---:|",
+        ]
+    )
+    for _, row in preview.iterrows():
+        lines.append(
+            "| {date} | {direction} | {code} | {name} | "
+            "{quantity:,} | {price:.4f} | {amount:,.2f} | {fee:,.2f} |".format(
+                date=row["交易日期"].strftime("%Y-%m-%d"),
+                direction=row["方向"],
+                code=row["证券代码"],
+                name=row["证券名称"],
+                quantity=int(row["成交数量"]),
+                price=row["成交价格"],
+                amount=row["成交金额"],
+                fee=row["总费用"],
+            )
+        )
+    lines.extend(
+        [
+            "",
+            "## 完整文件",
+            "",
+            "- `结果/实盘成交明细_脱敏.csv`",
+            "- `结果/实盘成交明细_脱敏.xlsx`",
+        ]
+    )
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def main() -> None:
     """解析PDF并保存脱敏成交明细。"""
 
@@ -498,6 +587,14 @@ def main() -> None:
         unmatched_sell,
         args.broker_profit,
     )
+    markdown_path = args.output.with_suffix(".md")
+    write_markdown_view(
+        markdown_path,
+        public_result,
+        paired,
+        account_summary,
+        args.broker_profit,
+    )
 
     print(
         f"解析完成：{len(result)} 条成交记录，"
@@ -508,6 +605,7 @@ def main() -> None:
           f"{result['交易日期'].max()}")
     print(f"输出文件：{args.output}")
     print(f"Excel文件：{excel_path}")
+    print(f"Markdown文件：{markdown_path}")
     print(
         f"已实现净盈亏：{paired['净盈亏金额'].sum():.2f}"
         if not paired.empty
