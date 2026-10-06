@@ -66,6 +66,17 @@ def max_concurrent_positions(trades: pd.DataFrame) -> int:
     )
 
 
+def normalize_code(values: pd.Series) -> pd.Series:
+    """把带市场后缀的代码转成6位股票代码。"""
+
+    return (
+        values.astype(str)
+        .str.split(".")
+        .str[0]
+        .str.zfill(6)
+    )
+
+
 def summarize(
     strategy: str,
     period: str,
@@ -167,7 +178,7 @@ def build_single_relay() -> pd.DataFrame:
     return pd.DataFrame(
         {
             "策略": "单连板",
-            "代码": trades["code"],
+            "代码": normalize_code(trades["code"]),
             "买入日期": trades["买入日期"],
             "买入价格": trades["买入成交价"],
             "卖出日期": trades["卖出日期"],
@@ -195,7 +206,7 @@ def build_single_reversal() -> pd.DataFrame:
     return pd.DataFrame(
         {
             "策略": "单反包",
-            "代码": data["code"],
+            "代码": normalize_code(data["code"]),
             "买入日期": data["买入日期"],
             "买入价格": data["买入成交价"],
             "卖出日期": data["卖出日期"],

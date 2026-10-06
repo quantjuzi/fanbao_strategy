@@ -35,6 +35,17 @@ PUBLIC_COLUMNS = [
 ]
 
 
+def normalize_code(values: pd.Series) -> pd.Series:
+    """把聚宽代码转换成6位股票代码。"""
+
+    return (
+        values.astype(str)
+        .str.split(".")
+        .str[0]
+        .str.zfill(6)
+    )
+
+
 def read_strategy1() -> pd.DataFrame:
     """读取67笔连板断板策略明细。"""
 
@@ -42,7 +53,7 @@ def read_strategy1() -> pd.DataFrame:
     return pd.DataFrame(
         {
             "策略": "策略一：连板断板承接",
-            "代码": data["代码"],
+            "代码": normalize_code(data["代码"]),
             "买入日期": pd.to_datetime(data["模拟买入日"]),
             "买入价格": data["实际模拟买入成交价"],
             "卖出日期": pd.to_datetime(data["模拟卖出日"]),
@@ -61,7 +72,7 @@ def read_strategy2() -> pd.DataFrame:
     return pd.DataFrame(
         {
             "策略": "策略二：单板反包开板2次",
-            "代码": data["code"],
+            "代码": normalize_code(data["code"]),
             "买入日期": pd.to_datetime(data["买入日期"]),
             "买入价格": data["买入成交价"],
             "卖出日期": pd.to_datetime(data["卖出日期"]),
@@ -170,6 +181,7 @@ def write_excel(path: Path, trades: pd.DataFrame) -> None:
         for cell in worksheet[1]
     }
     for row in worksheet.iter_rows(min_row=2):
+        row[headers["代码"] - 1].number_format = "@"
         row[headers["买入价格"] - 1].number_format = "0.0000"
         row[headers["卖出价格"] - 1].number_format = "0.0000"
         row[headers["净收益率"] - 1].number_format = "0.0000"
