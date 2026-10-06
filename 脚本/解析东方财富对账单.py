@@ -81,6 +81,12 @@ def parse_pdf(path: Path) -> pd.DataFrame:
                     "手续费": float(item["手续费"]),
                     "印花税": float(item["印花税"]),
                     "过户费": float(item["过户费"]),
+                    "总费用": (
+                        float(item["手续费"])
+                        + float(item["印花税"])
+                        + float(item["过户费"])
+                    ),
+                    "资金余额": float(item["资金余额"]),
                     "原始业务类型": item["业务类型"],
                 }
             )
@@ -104,7 +110,136 @@ def parse_pdf(path: Path) -> pd.DataFrame:
     ).reset_index(drop=True)
 
 
-def write_excel(path: Path, data: pd.DataFrame) -> None:
+def build_paired_trades(data: pd.DataFrame) -> tuple[pd.DataFrame, float]:
+    """按加权平均成本配对卖出，计算已实现净盈亏。"""
+
+    state: dict[str, dict[str, float]] = {}
+    rows: list[dict[str, object]] = []
+    unmatched_sell = 0.0
+
+    ordered = data.sort_values(
+        ["交易日期", "证券代码"],
+        kind="stable",
+    )
+    for _, trade in ordered.iterrows():
+        code = str(trade["证券代码"])
+        shares = float(trade["成交数量"])
+        price = float(trade["成交价格"])
+        fee = float(trade["总费用"])
+        current = state.setdefault(
+            code,
+            {"shares": 0.0, "cost": 0.0},
+        )
+
+        if trade["方向"] == "买入":
+            current["shares"] += shares
+            current["cost"] += shares * price + fee
+            continue
+
+        if current["shares"] <= 0:
+            unmatched_sell += shares
+            continue
+
+        matched = min(shares, current["shares"])
+        average_cost = (
+            current["cost"] / current["shares"]
+            if current["shares"] > 0
+            else 0.0
+        )
+        buy_cost = average_cost * matched
+        sell_fee = fee * matched / shares
+        sell_amount = price * matched - sell_fee
+        net_pnl = sell_amount - buy_cost
+        rows.append(
+            {
+                "卖出日期": trade["交易日期"],
+                "证券代码": code,
+                "证券名称": trade["证券名称"],
+                "配对数量": int(matched),
+                "加权买入成本": average_cost,
+                "卖出价格": price,
+                "买入成本金额": buy_cost,
+                "卖出净金额": sell_amount,
+                "卖出费用": sell_fee,
+                "净盈亏金额": net_pnl,
+                "净收益率": (
+                    net_pnl / buy_cost * 100
+                    if buy_cost > 0
+                    else 0.0
+                ),
+            }
+        )
+        current["shares"] -= matched
+        current["cost"] -= buy_cost
+        if shares > matched:
+            unmatched_sell += shares - matched
+
+    result = pd.DataFrame(rows)
+    if not result.empty:
+        result = result.sort_values(
+            ["卖出日期", "证券代码"]
+        ).reset_index(drop=True)
+    return result, unmatched_sell
+
+
+def parse_account_summary(
+    path: Path,
+    trades: pd.DataFrame,
+) -> dict[str, float]:
+    """按电子对账单资产口径估算账户总盈亏。"""
+
+    reader = PdfReader(path)
+    text = "\n".join(
+        page.extract_text() or ""
+        for page in reader.pages
+    )
+    external_pattern = re.compile(
+        r"^(?P<日期>\d{8})\s+"
+        r"(?P<类型>银行转证券|证券转银行)\s+"
+        r"0\s+0\.0000\s+"
+        r"(?P<金额>-?[\d.]+)"
+    )
+    external_flow = 0.0
+    for line in text.splitlines():
+        match = external_pattern.match(line.strip())
+        if match:
+            external_flow += float(match.group("金额"))
+
+    asset_match = re.search(
+        r"总资产\(RMB\)[：:]\s*([\d,.]+)",
+        text,
+    )
+    ending_assets = (
+        float(asset_match.group(1).replace(",", ""))
+        if asset_match
+        else float("nan")
+    )
+
+    first_trade = trades.iloc[0]
+    first_balance = float(first_trade["资金余额"])
+    first_cash_flow = float(first_trade["资金发生额"])
+    initial_cash = first_balance - first_cash_flow
+    total_profit = (
+        ending_assets - initial_cash - external_flow
+        if pd.notna(ending_assets)
+        else float("nan")
+    )
+    return {
+        "期初现金估算": initial_cash,
+        "银证净转入": external_flow,
+        "期末总资产": ending_assets,
+        "账户总盈亏估算": total_profit,
+        "交易现金流净额": float(trades["资金发生额"].sum()),
+    }
+
+
+def write_excel(
+    path: Path,
+    data: pd.DataFrame,
+    paired: pd.DataFrame,
+    account_summary: dict[str, float],
+    unmatched_sell: float,
+) -> None:
     """输出成交明细、汇总和月度统计。"""
 
     summary = pd.DataFrame(
@@ -127,9 +262,36 @@ def write_excel(path: Path, data: pd.DataFrame) -> None:
             {"指标": "手续费合计", "值": data["手续费"].sum()},
             {"指标": "印花税合计", "值": data["印花税"].sum()},
             {"指标": "过户费合计", "值": data["过户费"].sum()},
+            {"指标": "总费用合计", "值": data["总费用"].sum()},
             {
                 "指标": "资金发生额合计",
                 "值": data["资金发生额"].sum(),
+            },
+            {
+                "指标": "已实现净盈亏",
+                "值": paired["净盈亏金额"].sum()
+                if not paired.empty
+                else 0.0,
+            },
+            {
+                "指标": "未匹配卖出数量",
+                "值": unmatched_sell,
+            },
+            {
+                "指标": "期初现金估算",
+                "值": account_summary["期初现金估算"],
+            },
+            {
+                "指标": "银证净转入",
+                "值": account_summary["银证净转入"],
+            },
+            {
+                "指标": "期末总资产",
+                "值": account_summary["期末总资产"],
+            },
+            {
+                "指标": "账户总盈亏估算",
+                "值": account_summary["账户总盈亏估算"],
             },
         ]
     )
@@ -168,6 +330,7 @@ def write_excel(path: Path, data: pd.DataFrame) -> None:
 
     with pd.ExcelWriter(path, engine="openpyxl") as writer:
         data.to_excel(writer, sheet_name="成交明细", index=False)
+        paired.to_excel(writer, sheet_name="配对明细", index=False)
         summary.to_excel(writer, sheet_name="汇总", index=False)
         monthly.to_excel(writer, sheet_name="月度统计", index=False)
 
@@ -213,7 +376,7 @@ def write_excel(path: Path, data: pd.DataFrame) -> None:
             chr(64 + headers[name])
         ].width = width
 
-    for sheet in ["汇总", "月度统计"]:
+    for sheet in ["配对明细", "汇总", "月度统计"]:
         current = workbook[sheet]
         current.freeze_panes = "A2"
         current.auto_filter.ref = current.dimensions
@@ -238,14 +401,23 @@ def main() -> None:
 
     args = parse_args()
     result = parse_pdf(args.pdf)
+    paired, unmatched_sell = build_paired_trades(result)
+    account_summary = parse_account_summary(args.pdf, result)
+    public_result = result.drop(columns=["资金余额"])
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    result.to_csv(
+    public_result.to_csv(
         args.output,
         index=False,
         encoding="utf-8-sig",
     )
     excel_path = args.output.with_suffix(".xlsx")
-    write_excel(excel_path, result)
+    write_excel(
+        excel_path,
+        public_result,
+        paired,
+        account_summary,
+        unmatched_sell,
+    )
 
     print(
         f"解析完成：{len(result)} 条成交记录，"
@@ -256,6 +428,13 @@ def main() -> None:
           f"{result['交易日期'].max()}")
     print(f"输出文件：{args.output}")
     print(f"Excel文件：{excel_path}")
+    print(
+        f"已实现净盈亏：{paired['净盈亏金额'].sum():.2f}"
+        if not paired.empty
+        else "已实现净盈亏：0.00"
+    )
+    print(f"总费用：{result['总费用'].sum():.2f}")
+    print(f"账户总盈亏估算：{account_summary['账户总盈亏估算']:.2f}")
 
 
 if __name__ == "__main__":
