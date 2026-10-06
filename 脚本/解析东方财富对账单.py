@@ -266,10 +266,22 @@ def write_excel(
                     data["方向"].eq("卖出"), "成交金额"
                 ].sum(),
             },
-            {"指标": "手续费合计", "值": data["手续费"].sum()},
-            {"指标": "印花税合计", "值": data["印花税"].sum()},
-            {"指标": "过户费合计", "值": data["过户费"].sum()},
-            {"指标": "总费用合计", "值": data["总费用"].sum()},
+            {
+                "指标": "手续费合计（对账单“手续费”）",
+                "值": data["手续费"].sum(),
+            },
+            {
+                "指标": "印花税合计（对账单“印花税”）",
+                "值": data["印花税"].sum(),
+            },
+            {
+                "指标": "过户费合计（对账单“过户费”）",
+                "值": data["过户费"].sum(),
+            },
+            {
+                "指标": "总费用合计（三项相加）",
+                "值": data["总费用"].sum(),
+            },
             {
                 "指标": "资金发生额合计",
                 "值": data["资金发生额"].sum(),
@@ -319,6 +331,19 @@ def write_excel(
         if not paired.empty
         else paired
     )
+    fee_view = data[
+        [
+            "交易日期",
+            "方向",
+            "证券代码",
+            "证券名称",
+            "成交金额",
+            "手续费",
+            "印花税",
+            "过户费",
+            "总费用",
+        ]
+    ].copy()
     monthly = data.copy()
     monthly["月份"] = monthly["交易日期"].dt.to_period("M").astype(str)
     monthly = (
@@ -355,6 +380,7 @@ def write_excel(
     with pd.ExcelWriter(path, engine="openpyxl") as writer:
         detail_view.to_excel(writer, sheet_name="成交明细", index=False)
         paired_view.to_excel(writer, sheet_name="配对明细", index=False)
+        fee_view.to_excel(writer, sheet_name="费用核对", index=False)
         summary.to_excel(writer, sheet_name="汇总", index=False)
         monthly.to_excel(writer, sheet_name="月度统计", index=False)
 
@@ -396,7 +422,14 @@ def write_excel(
             chr(64 + headers[name])
         ].width = width
 
-    for sheet in ["配对明细", "汇总", "月度统计"]:
+    fee_sheet = workbook["费用核对"]
+    fee_headers = {cell.value: cell.column for cell in fee_sheet[1]}
+    for row in fee_sheet.iter_rows(min_row=2):
+        row[fee_headers["交易日期"] - 1].number_format = "yyyy-mm-dd"
+        for name in ["成交金额", "手续费", "印花税", "过户费", "总费用"]:
+            row[fee_headers[name] - 1].number_format = "#,##0.00"
+
+    for sheet in ["配对明细", "费用核对", "汇总", "月度统计"]:
         current = workbook[sheet]
         current.freeze_panes = "A2"
         current.auto_filter.ref = current.dimensions
