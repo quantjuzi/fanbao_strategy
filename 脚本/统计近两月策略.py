@@ -31,6 +31,9 @@ def summarize(
     winners = trades.loc[trades["净收益率"].gt(0), "净收益率"]
     losers = trades.loc[trades["净收益率"].lt(0), "净收益率"]
     normalized_pnl = trades["净收益率"] * 20_000 / 100
+    max_positions = max_concurrent_positions(trades)
+    capital_required = max_positions * 20_000
+    total_pnl = normalized_pnl.sum()
     return {
         "策略": strategy,
         "区间": period,
@@ -47,12 +50,34 @@ def summarize(
         ),
         "平均盈利": winners.mean() if not winners.empty else 0.0,
         "平均亏损": losers.mean() if not losers.empty else 0.0,
+        "平均每笔收益金额": (
+            trades["净收益率"].mean() * 20_000 / 100
+            if not trades.empty
+            else 0.0
+        ),
+        "平均盈利金额": (
+            winners.mean() * 20_000 / 100
+            if not winners.empty
+            else 0.0
+        ),
+        "平均亏损金额": (
+            losers.mean() * 20_000 / 100
+            if not losers.empty
+            else 0.0
+        ),
         "盈亏比": (
             winners.mean() / abs(losers.mean())
             if not winners.empty and not losers.empty
             else 0.0
         ),
-        "按两万元每笔累计盈亏": normalized_pnl.sum(),
+        "最高并发持仓": max_positions,
+        "最高资金占用": capital_required,
+        "按两万元每笔累计盈亏": total_pnl,
+        "资金收益率": (
+            total_pnl / capital_required * 100
+            if capital_required > 0
+            else 0.0
+        ),
         "最大单笔盈利": (
             trades["净收益率"].max()
             if not trades.empty
@@ -64,6 +89,25 @@ def summarize(
             else 0.0
         ),
     }
+
+
+def max_concurrent_positions(trades: pd.DataFrame) -> int:
+    """按买入日到卖出日计算最高并发持仓数。"""
+
+    if trades.empty:
+        return 0
+    dates = pd.date_range(
+        trades["买入日期"].min(),
+        trades["卖出日期"].max(),
+        freq="D",
+    )
+    return max(
+        int(
+            trades["买入日期"].le(date).sum()
+            - trades["卖出日期"].lt(date).sum()
+        )
+        for date in dates
+    )
 
 
 def fetch_index_context() -> pd.DataFrame:
@@ -139,6 +183,10 @@ def main() -> None:
             trades["买入日期"],
             errors="coerce",
         )
+        trades["卖出日期"] = pd.to_datetime(
+            trades["卖出日期"],
+            errors="coerce",
+        )
         trades = trades.loc[
             trades["买入日期"].between(PERIOD_START, PERIOD_END)
         ].copy()
@@ -171,26 +219,34 @@ def main() -> None:
         "",
         "这里不额外叠加题材、情绪或新的过滤条件，只比较两种模式在不同市场月份下的整体统计变化。",
         "",
-        "| 策略 | 区间 | 交易数 | 净胜率 | 平均净收益率 | 盈亏比 | 按两万元每笔累计盈亏 |",
-        "|---|---|---:|---:|---:|---:|---:|",
+        "| 策略 | 区间 | 交易数 | 净胜率 | 平均净收益率 | 平均每笔收益金额 | 平均盈利金额 | 平均亏损金额 | 盈亏比 | 最高并发持仓 | 最高资金占用 | 按两万元每笔累计盈亏 | 资金收益率 |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for _, row in result.iterrows():
         lines.append(
             "| {strategy} | {period} | {trades} | {win_rate:.2f}% | "
-            "{avg_return:+.4f}% | {ratio:.4f} | {pnl:+,.2f}元 |".format(
+            "{avg_return:+.4f}% | {avg_amount:+,.2f}元 | {avg_win:+,.2f}元 | "
+            "{avg_loss:+,.2f}元 | {ratio:.4f} | {max_positions} | "
+            "{capital:,.0f}元 | {pnl:+,.2f}元 | {capital_return:+.2f}% |".format(
                 strategy=row["策略"],
                 period=row["区间"],
                 trades=int(row["交易数"]),
                 win_rate=row["净胜率"],
                 avg_return=row["平均净收益率"],
+                avg_amount=row["平均每笔收益金额"],
+                avg_win=row["平均盈利金额"],
+                avg_loss=row["平均亏损金额"],
                 ratio=row["盈亏比"],
+                max_positions=int(row["最高并发持仓"]),
+                capital=row["最高资金占用"],
                 pnl=row["按两万元每笔累计盈亏"],
+                capital_return=row["资金收益率"],
             )
         )
     lines.extend(
         [
             "",
-            "## 大白比较",
+            "## 直接比较",
             "",
             "| 区间 | 深证成指 | 连板断板平均收益 | 单板反包平均收益 | 相对更好 |",
             "|---|---:|---:|---:|---|",
