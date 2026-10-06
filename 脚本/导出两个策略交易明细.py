@@ -102,6 +102,51 @@ def summarize(
     }
 
 
+def concentration_summary(
+    name: str,
+    trades: pd.DataFrame,
+) -> dict[str, float | str]:
+    """统计收益是否集中在少数大额盈利交易上。"""
+
+    sample = trades.copy()
+    sample["标准化盈亏"] = (
+        sample["净收益率"] * 20_000 / 100
+    )
+    total_pnl = float(sample["标准化盈亏"].sum())
+    sorted_pnl = sample["标准化盈亏"].sort_values(
+        ascending=False
+    )
+
+    result: dict[str, float | str] = {
+        "策略": name,
+        "交易数": len(sample),
+        "累计标准化盈亏": total_pnl,
+        "中位数收益率": sample["净收益率"].median(),
+        "最大单笔盈利": sample["净收益率"].max(),
+        "最大单笔亏损": sample["净收益率"].min(),
+    }
+    for count in [1, 3, 5]:
+        removed = sorted_pnl.head(count)
+        remaining = sample.drop(removed.index)
+        result[f"前{count}笔盈利贡献"] = (
+            removed.sum() / total_pnl * 100
+            if total_pnl != 0
+            else 0.0
+        )
+        result[f"去掉前{count}笔后累计盈亏"] = remaining[
+            "标准化盈亏"
+        ].sum()
+        result[f"去掉前{count}笔后平均收益率"] = (
+            remaining["标准化盈亏"].sum()
+            / len(remaining)
+            / 20_000
+            * 100
+            if not remaining.empty
+            else 0.0
+        )
+    return result
+
+
 def write_excel(path: Path, trades: pd.DataFrame) -> None:
     """输出带格式的Excel明细。"""
 
@@ -174,7 +219,26 @@ def main() -> None:
         index=False,
         encoding="utf-8-sig",
     )
+    concentration = pd.DataFrame(
+        [
+            concentration_summary(
+                "策略一：连板断板承接",
+                strategy1,
+            ),
+            concentration_summary(
+                "策略二：单板反包开板2次",
+                strategy2,
+            ),
+        ]
+    )
+    concentration.to_csv(
+        OUTPUT_DIR / "两个策略盈利集中度.csv",
+        index=False,
+        encoding="utf-8-sig",
+    )
     print(summary.to_string(index=False))
+    print()
+    print(concentration.to_string(index=False))
 
 
 if __name__ == "__main__":
