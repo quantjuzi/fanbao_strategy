@@ -81,18 +81,25 @@ def parse_pdf(path: Path) -> pd.DataFrame:
                     "证券代码": item["代码"].split(".")[0].zfill(6),
                     "证券名称": re.sub(r"\s+", "", item["名称"]),
                     "成交数量": int(item["数量"]),
-                    "成交价格": float(item["价格"]),
-                    "资金发生额": float(item["发生金额"]),
-                    "成交金额": abs(float(item["发生金额"])),
-                    "手续费": float(item["手续费"]),
-                    "印花税": float(item["印花税"]),
-                    "过户费": float(item["过户费"]),
-                    "总费用": (
+                    "成交价格": round(float(item["价格"]), 4),
+                    "资金发生额": round(
+                        float(item["发生金额"]),
+                        2,
+                    ),
+                    "成交金额": round(
+                        abs(float(item["发生金额"])),
+                        2,
+                    ),
+                    "手续费": round(float(item["手续费"]), 2),
+                    "印花税": round(float(item["印花税"]), 2),
+                    "过户费": round(float(item["过户费"]), 2),
+                    "总费用": round(
                         float(item["手续费"])
                         + float(item["印花税"])
-                        + float(item["过户费"])
+                        + float(item["过户费"]),
+                        2,
                     ),
-                    "资金余额": float(item["资金余额"]),
+                    "资金余额": round(float(item["资金余额"]), 2),
                     "原始业务类型": item["业务类型"],
                 }
             )
@@ -162,14 +169,14 @@ def build_paired_trades(data: pd.DataFrame) -> tuple[pd.DataFrame, float]:
                 "证券代码": code,
                 "证券名称": trade["证券名称"],
                 "配对数量": int(matched),
-                "加权买入成本": average_cost,
-                "卖出价格": price,
-                "买入成本金额": buy_cost,
-                "卖出净金额": sell_amount,
-                "卖出费用": sell_fee,
-                "净盈亏金额": net_pnl,
+                "加权买入成本": round(average_cost, 4),
+                "卖出价格": round(price, 4),
+                "买入成本金额": round(buy_cost, 2),
+                "卖出净金额": round(sell_amount, 2),
+                "卖出费用": round(sell_fee, 2),
+                "净盈亏金额": round(net_pnl, 2),
                 "净收益率": (
-                    net_pnl / buy_cost * 100
+                    round(net_pnl / buy_cost * 100, 4)
                     if buy_cost > 0
                     else 0.0
                 ),
@@ -438,6 +445,15 @@ def write_excel(
         row[fee_headers["证券代码"] - 1].number_format = "@"
         for name in ["成交金额", "手续费", "印花税", "过户费", "总费用"]:
             row[fee_headers[name] - 1].number_format = "#,##0.00"
+
+    summary_sheet = workbook["汇总"]
+    for row in summary_sheet.iter_rows(min_row=2):
+        row[1].number_format = "#,##0.00"
+
+    monthly_sheet = workbook["月度统计"]
+    for row in monthly_sheet.iter_rows(min_row=2):
+        for cell in row[1:]:
+            cell.number_format = "#,##0.00"
 
     for sheet in ["配对明细", "费用核对", "汇总", "月度统计"]:
         current = workbook[sheet]
