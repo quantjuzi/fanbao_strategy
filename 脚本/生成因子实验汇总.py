@@ -410,6 +410,20 @@ def build_change_markdown(summary: pd.DataFrame) -> str:
         "第二天成交额区间": "../结果/第二天成交额分组.csv",
         "涨停日开板次数": "../结果/涨停日开板次数分组.csv",
     }
+    stock_map = {
+        "第三日竞价区间": (
+            "../结果/因子验证明细/第三日竞价区间_股票明细.md",
+            "第三日竞价区间股票明细.md",
+        ),
+        "第二天成交额区间": (
+            "../结果/因子验证明细/第二天成交额区间_股票明细.md",
+            "第二天成交额区间股票明细.md",
+        ),
+        "涨停日开板次数": (
+            "../结果/因子验证明细/涨停日开板次数_股票明细.md",
+            "涨停日开板次数股票明细.md",
+        ),
+    }
     lines = [
         "# 逐因子变化汇总",
         "",
@@ -441,28 +455,35 @@ def build_change_markdown(summary: pd.DataFrame) -> str:
             if script
         )
 
-        lines.extend(
+        experiment_lines = [
+            f"## {experiment_number}. {experiment}",
+            "",
+            f"- 基准方案：{base['基准方案']}",
+            f"- 固定样本：{base['样本说明']}",
+            f"- 基准表现：{int(base['交易数'])} 笔，"
+            f"净胜率 {format_number(base['净胜率'])}%，"
+            f"平均净收益率 {format_number(base['平均净收益率'], 4)}%",
+            f"- 只改因子：{base['只改因子']}",
+            f"- 复现代码：{source_links}",
+        ]
+        if experiment in detail_map:
+            experiment_lines.append(
+                f"- 分组数据：[{Path(detail_map[experiment]).name}]"
+                f"({detail_map[experiment]})"
+            )
+        if experiment in stock_map:
+            stock_path, stock_name = stock_map[experiment]
+            experiment_lines.append(
+                f"- 股票明细：[{stock_name}]({stock_path})"
+            )
+        experiment_lines.extend(
             [
-                f"## {experiment_number}. {experiment}",
-                "",
-                f"- 基准方案：{base['基准方案']}",
-                f"- 固定样本：{base['样本说明']}",
-                f"- 基准表现：{int(base['交易数'])} 笔，"
-                f"净胜率 {format_number(base['净胜率'])}%，"
-                f"平均净收益率 {format_number(base['平均净收益率'], 4)}%",
-                f"- 只改因子：{base['只改因子']}",
-                f"- 复现代码：{source_links}",
-                (
-                    f"- 分组数据：[{Path(detail_map[experiment]).name}]"
-                    f"({detail_map[experiment]})"
-                    if experiment in detail_map
-                    else ""
-                ),
                 "",
                 "| 因子取值 | 交易数 | 净胜率 | 平均净收益率 | 盈亏比 | 结论 |",
                 "|---|---:|---:|---:|---:|---|",
             ]
         )
+        lines.extend(experiment_lines)
         for _, row in group_rows.iterrows():
             lines.append(
                 f"| {row['因子取值']} | {int(row['交易数'])} | "
