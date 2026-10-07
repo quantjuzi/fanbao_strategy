@@ -24,7 +24,7 @@ from 连板断板统计 import consecutive_limit_count
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 RESULT_DIR = PROJECT_DIR / "结果"
 DOC_PATH = PROJECT_DIR / "文档" / "单反包单连板对比.md"
-DATA_PATH = PROJECT_DIR / "数据" / "聚宽因子_2026-01-01_2026-09-30.csv"
+DATA_PATH = PROJECT_DIR / "数据" / "聚宽因子_2025-10-01_2026-09-30.csv"
 STRATEGY_PATH = PROJECT_DIR / "脚本" / "高开均线完整回测.py"
 REVERSAL_SOURCE = Path(
     r"C:\Users\Administrator\PyCharmMiscProject"

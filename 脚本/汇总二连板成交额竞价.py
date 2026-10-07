@@ -18,7 +18,7 @@ SOURCE = (
     / '二连板及以上低竞价_前两日开板明细.csv'
 )
 TRADING_DATES = pd.read_csv(
-    PROJECT_DIR / '数据' / '聚宽因子_2026-01-01_2026-09-30.csv',
+    PROJECT_DIR / '数据' / '聚宽因子_2025-10-01_2026-09-30.csv',
     encoding='utf-8-sig',
     usecols=['time'],
 )['time']
