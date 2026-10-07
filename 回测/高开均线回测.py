@@ -66,14 +66,6 @@ def load_data(path: Path) -> pd.DataFrame:
     if missing:
         raise ValueError(f"缺少字段: {sorted(missing)}")
 
-    df = df.rename(
-        columns={
-            "竞价涨幅": "auction_return",
-            "成交额_亿": "turnover_billion",
-            "M7": "ma7",
-            "M14": "ma14",
-        }
-    )
     df["time"] = pd.to_datetime(df["time"], errors="coerce")
     df["code"] = df["code"].astype("string")
 
@@ -83,10 +75,10 @@ def load_data(path: Path) -> pd.DataFrame:
         "volume",
         "money",
         "paused",
-        "auction_return",
-        "turnover_billion",
-        "ma7",
-        "ma14",
+        "竞价涨幅",
+        "成交额_亿",
+        "M7",
+        "M14",
     ]
     for column in numeric_columns:
         df[column] = pd.to_numeric(df[column], errors="coerce")
@@ -100,9 +92,9 @@ def load_data(path: Path) -> pd.DataFrame:
             "close",
             "volume",
             "money",
-            "auction_return",
-            "turnover_billion",
-            "ma14",
+            "竞价涨幅",
+            "成交额_亿",
+            "M14",
         ]
     )
     df = df[
@@ -123,21 +115,21 @@ def prepare_factors(
     """计算信号因子，并标记 T 日是否满足策略条件。"""
 
     result = df.copy()
-    result["body_return"] = (
+    result["实体涨幅"] = (
         result["close"] / result["open"] - 1
     ) * 100
-    result["avg_price"] = result["money"] / result["volume"]
-    result["ma_ratio"] = result["ma7"] / result["ma14"]
+    result["均价"] = result["money"] / result["volume"]
+    result["均线比值"] = result["M7"] / result["M14"]
 
     signal = (
-        result["auction_return"].gt(0)
-        & result["body_return"].between(-5, 5)
-        & result["close"].gt(result["ma14"])
+        result["竞价涨幅"].gt(0)
+        & result["实体涨幅"].between(-5, 5)
+        & result["close"].gt(result["M14"])
     )
     if config.min_ma_ratio > 0:
-        signal &= result["ma_ratio"].gt(config.min_ma_ratio)
+        signal &= result["均线比值"].gt(config.min_ma_ratio)
 
-    result["signal"] = signal.astype(int)
+    result["信号"] = signal.astype(int)
     return result
 
 
@@ -148,23 +140,23 @@ def build_trades(df: pd.DataFrame) -> pd.DataFrame:
     grouped = result.groupby("code", sort=False)
 
     # shift(-1) 和 shift(-2) 必须在同一只股票内计算。
-    result["buy_date"] = grouped["time"].shift(-1)
-    result["buy_open"] = grouped["open"].shift(-1)
-    result["sell_date"] = grouped["time"].shift(-2)
-    result["sell_avg"] = grouped["avg_price"].shift(-2)
+    result["买入日期"] = grouped["time"].shift(-1)
+    result["买入开盘价"] = grouped["open"].shift(-1)
+    result["卖出日期"] = grouped["time"].shift(-2)
+    result["卖出均价"] = grouped["均价"].shift(-2)
 
-    trades = result.loc[result["signal"].eq(1)].copy()
+    trades = result.loc[result["信号"].eq(1)].copy()
     trades = trades.dropna(
         subset=[
-            "buy_date",
-            "buy_open",
-            "sell_date",
-            "sell_avg",
+            "买入日期",
+            "买入开盘价",
+            "卖出日期",
+            "卖出均价",
         ]
     )
     trades = trades.loc[
-        trades["buy_date"].gt(trades["time"])
-        & trades["sell_date"].gt(trades["buy_date"])
+        trades["买入日期"].gt(trades["time"])
+        & trades["卖出日期"].gt(trades["买入日期"])
     ]
     return trades.reset_index(drop=True)
 
@@ -176,48 +168,48 @@ def apply_costs(
     """计算滑点、整手买入、手续费和净收益。"""
 
     result = trades.copy()
-    result["buy_price"] = result["buy_open"] * (
+    result["买入价格"] = result["买入开盘价"] * (
         1 + config.slippage_rate
     )
-    result["sell_price"] = result["sell_avg"] * (
+    result["卖出价格"] = result["卖出均价"] * (
         1 - config.slippage_rate
     )
-    result["shares"] = (
-        result["buy_price"]
+    result["股数"] = (
+        result["买入价格"]
         .rdiv(config.position_size)
         .floordiv(config.lot_size)
         .mul(config.lot_size)
         .astype(int)
     )
-    result = result.loc[result["shares"].gt(0)].copy()
+    result = result.loc[result["股数"].gt(0)].copy()
 
-    result["buy_amount"] = result["shares"] * result["buy_price"]
-    result["sell_amount"] = result["shares"] * result["sell_price"]
-    result["buy_commission"] = np.maximum(
-        result["buy_amount"] * config.commission_rate,
+    result["买入金额"] = result["股数"] * result["买入价格"]
+    result["卖出金额"] = result["股数"] * result["卖出价格"]
+    result["买入佣金"] = np.maximum(
+        result["买入金额"] * config.commission_rate,
         config.min_commission,
     )
-    result["sell_commission"] = np.maximum(
-        result["sell_amount"] * config.commission_rate,
+    result["卖出佣金"] = np.maximum(
+        result["卖出金额"] * config.commission_rate,
         config.min_commission,
     )
-    result["buy_fee"] = (
-        result["buy_commission"]
-        + result["buy_amount"] * config.transfer_fee_rate
+    result["买入费用"] = (
+        result["买入佣金"]
+        + result["买入金额"] * config.transfer_fee_rate
     )
-    result["sell_fee"] = (
-        result["sell_commission"]
-        + result["sell_amount"] * config.transfer_fee_rate
-        + result["sell_amount"] * config.stamp_duty_rate
+    result["卖出费用"] = (
+        result["卖出佣金"]
+        + result["卖出金额"] * config.transfer_fee_rate
+        + result["卖出金额"] * config.stamp_duty_rate
     )
-    result["net_pnl"] = (
-        result["sell_amount"]
-        - result["buy_amount"]
-        - result["buy_fee"]
-        - result["sell_fee"]
+    result["净盈亏"] = (
+        result["卖出金额"]
+        - result["买入金额"]
+        - result["买入费用"]
+        - result["卖出费用"]
     )
-    result["net_return"] = (
-        result["net_pnl"] / result["buy_amount"] * 100
+    result["净收益率"] = (
+        result["净盈亏"] / result["买入金额"] * 100
     )
     return result
 
@@ -229,12 +221,12 @@ def select_portfolio(
     """每个信号日按成交额选择前 N 名。"""
 
     result = trades.copy()
-    result["daily_rank"] = result.groupby("time")[
-        "turnover_billion"
+    result["每日排名"] = result.groupby("time")[
+        "成交额_亿"
     ].rank(method="first", ascending=False)
-    result = result.loc[result["daily_rank"].le(config.top_n)].copy()
+    result = result.loc[result["每日排名"].le(config.top_n)].copy()
     return result.sort_values(
-        ["buy_date", "time", "code"]
+        ["买入日期", "time", "code"]
     ).reset_index(drop=True)
 
 
@@ -256,12 +248,12 @@ def max_concurrent_positions(
     date_index = {date: i for i, date in enumerate(calendar)}
     events = np.zeros(len(calendar) + 1, dtype=int)
 
-    for buy_date, sell_date in zip(
-        trades["buy_date"],
-        trades["sell_date"],
+    for 买入日, 卖出日 in zip(
+        trades["买入日期"],
+        trades["卖出日期"],
     ):
-        start = date_index[pd.Timestamp(buy_date)]
-        end = date_index[pd.Timestamp(sell_date)] + 1
+        start = date_index[pd.Timestamp(买入日)]
+        end = date_index[pd.Timestamp(卖出日)] + 1
         events[start] += 1
         events[end] -= 1
 
@@ -279,14 +271,14 @@ def calculate_metrics(
         raise ValueError("组合中没有可统计的交易。")
 
     winners = portfolio.loc[
-        portfolio["net_return"].gt(0),
-        "net_return",
+        portfolio["净收益率"].gt(0),
+        "净收益率",
     ]
     losers = portfolio.loc[
-        portfolio["net_return"].lt(0),
-        "net_return",
+        portfolio["净收益率"].lt(0),
+        "净收益率",
     ]
-    total_pnl = float(portfolio["net_pnl"].sum())
+    total_pnl = float(portfolio["净盈亏"].sum())
     max_positions = max_concurrent_positions(
         portfolio,
         trading_dates,
@@ -303,13 +295,13 @@ def calculate_metrics(
         .drop_duplicates()
         .sort_values()
     )
-    first_buy = portfolio["buy_date"].min()
-    last_sell = portfolio["sell_date"].max()
+    first_buy = portfolio["买入日期"].min()
+    last_sell = portfolio["卖出日期"].max()
     active_dates = calendar.loc[
         calendar.between(first_buy, last_sell)
     ]
     daily_returns = (
-        portfolio.groupby("sell_date")["net_return"]
+        portfolio.groupby("卖出日期")["净收益率"]
         .mean()
         .div(100)
         .reindex(active_dates, fill_value=0.0)
@@ -331,23 +323,23 @@ def calculate_metrics(
     )
 
     return {
-        "trades": float(len(portfolio)),
-        "win_rate": float(portfolio["net_return"].gt(0).mean() * 100),
-        "avg_return": float(portfolio["net_return"].mean()),
-        "avg_win": float(winners.mean()) if not winners.empty else 0.0,
-        "avg_loss": float(losers.mean()) if not losers.empty else 0.0,
-        "profit_loss_ratio": (
+        "交易数": float(len(portfolio)),
+        "胜率": float(portfolio["净收益率"].gt(0).mean() * 100),
+        "平均收益率": float(portfolio["净收益率"].mean()),
+        "平均盈利": float(winners.mean()) if not winners.empty else 0.0,
+        "平均亏损": float(losers.mean()) if not losers.empty else 0.0,
+        "盈亏比": (
             float(winners.mean() / abs(losers.mean()))
             if not winners.empty and not losers.empty
             else np.nan
         ),
-        "total_pnl": total_pnl,
-        "max_positions": float(max_positions),
-        "capital_required": float(capital_required),
-        "interval_return": float(interval_return * 100),
-        "annual_return": float(annual_return * 100),
-        "max_drawdown": float(drawdown.min() * 100),
-        "sharpe": float(sharpe),
+        "总盈亏": total_pnl,
+        "最大持仓数": float(max_positions),
+        "所需资金": float(capital_required),
+        "区间收益率": float(interval_return * 100),
+        "年化收益率": float(annual_return * 100),
+        "最大回撤": float(drawdown.min() * 100),
+        "夏普": float(sharpe),
     }
 
 
