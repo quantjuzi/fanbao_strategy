@@ -18,7 +18,7 @@ import pandas as pd
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
-DAILY_PATH = PROJECT_DIR / '数据' / '聚宽因子_2026-01-01_2026-09-30.csv'
+DAILY_PATH = PROJECT_DIR / '数据' / '聚宽因子_2025-10-01_2026-09-30.csv'
 OUTPUT_PATH = (
     Path(r'C:\Users\Administrator\PyCharmMiscProject')
     / '高开均线完整输出'
@@ -103,7 +103,7 @@ def main() -> None:
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--limit', type=int, default=5)
-    parser.add_argument('--start', default='2026-01-01')
+    parser.add_argument('--start', default='2025-10-01')
     parser.add_argument('--end', default='2026-09-30')
     parser.add_argument(
         '--mode',

@@ -121,7 +121,7 @@ def main() -> None:
         right=False,
     )
     trading_dates = pd.read_csv(
-        PROJECT_DIR / '数据' / '聚宽因子_2026-01-01_2026-09-30.csv',
+        PROJECT_DIR / '数据' / '聚宽因子_2025-10-01_2026-09-30.csv',
         encoding='utf-8-sig',
         usecols=['time'],
     )['time']
