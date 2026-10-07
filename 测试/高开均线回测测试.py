@@ -40,10 +40,10 @@ class TrendGapBacktestTests(unittest.TestCase):
                     1_100_000_000.0,
                 ],
                 "paused": [0.0] * 3,
-                "auction_return": [1.0, -1.0, -1.0],
-                "turnover_billion": [10.0, 11.0, 12.0],
-                "ma7": [10.0, 10.1, 10.2],
-                "ma14": [9.5, 9.6, 9.7],
+                "竞价涨幅": [1.0, -1.0, -1.0],
+                "成交额_亿": [10.0, 11.0, 12.0],
+                "M7": [10.0, 10.1, 10.2],
+                "M14": [9.5, 9.6, 9.7],
             }
         )
 
@@ -52,14 +52,14 @@ class TrendGapBacktestTests(unittest.TestCase):
         data = MODULE.prepare_factors(self.sample_data(), config)
         trades = MODULE.build_trades(data)
 
-        self.assertEqual(int(data["signal"].sum()), 1)
+        self.assertEqual(int(data["信号"].sum()), 1)
         self.assertEqual(len(trades), 1)
         self.assertEqual(
-            trades.iloc[0]["buy_date"],
+            trades.iloc[0]["买入日期"],
             pd.Timestamp("2026-01-06"),
         )
         self.assertEqual(
-            trades.iloc[0]["sell_date"],
+            trades.iloc[0]["卖出日期"],
             pd.Timestamp("2026-01-07"),
         )
 
@@ -70,10 +70,10 @@ class TrendGapBacktestTests(unittest.TestCase):
         result = MODULE.apply_costs(trades, config)
 
         self.assertEqual(len(result), 1)
-        self.assertEqual(result.iloc[0]["shares"], 1_900)
-        self.assertGreater(result.iloc[0]["net_pnl"], 0)
+        self.assertEqual(result.iloc[0]["股数"], 1_900)
+        self.assertGreater(result.iloc[0]["净盈亏"], 0)
         self.assertLess(
-            result.iloc[0]["net_return"],
+            result.iloc[0]["净收益率"],
             (11.0 / 10.5 - 1) * 100,
         )
 
