@@ -403,40 +403,109 @@ def build_markdown(config: dict[str, Any], summary: pd.DataFrame) -> str:
 
 
 def build_change_markdown(summary: pd.DataFrame) -> str:
-    """生成所有因子变化的紧凑汇总。"""
+    """生成适合阅读的逐因子变化摘要。"""
 
+    detail_map = {
+        "第三日竞价区间": "../结果/第三日竞价分组.csv",
+        "第二天成交额区间": "../结果/第二天成交额分组.csv",
+        "涨停日开板次数": "../结果/涨停日开板次数分组.csv",
+    }
     lines = [
         "# 逐因子变化汇总",
         "",
-        "每一行只改变一个因子，其他条件保持不变。变化值均相对该实验基准计算。",
+        "这份文件只保留每个实验的基准、主要结论和关键分组。",
+        "完整字段和相对基准变化见 [因子实验对照表](./因子实验对照表.md)，",
+        "所有分组明细见 [因子实验汇总.csv](../结果/因子实验汇总.csv)。",
         "",
-        "| 实验 | 只改因子 | 因子取值 | 交易数 | 净胜率 | 相对基准胜率 | 平均净收益率 | 相对基准平均收益 | 方向评级 |",
-        "|---|---|---|---:|---:|---:|---:|---:|---|",
     ]
-    for _, row in summary.iterrows():
-        lines.append(
-            "| {experiment} | {factor} | {value} | {trades} | "
-            "{win_rate}% | {win_delta:+.2f}个百分点 | "
-            "{avg_return}% | {return_delta:+.4f}个百分点 | {rating} |".format(
-                experiment=row["实验"],
-                factor=row["只改因子"],
-                value=row["因子取值"],
-                trades=int(row["交易数"]),
-                win_rate=format_number(row["净胜率"]),
-                win_delta=row["相对基准净胜率变化"],
-                avg_return=format_number(row["平均净收益率"], 4),
-                return_delta=row["相对基准平均收益变化"],
-                rating=row["方向评级"],
-            )
+
+    experiment_number = 0
+    for experiment, group in summary.groupby("实验", sort=False):
+        experiment_number += 1
+        base_rows = group[group["方向评级"].eq("基准")]
+        base = base_rows.iloc[0] if not base_rows.empty else group.iloc[0]
+        group_rows = group[~group["方向评级"].eq("基准")].copy()
+        positive = group_rows[
+            group_rows["方向评级"].str.contains("正向", na=False)
+        ]
+        negative = group_rows[
+            group_rows["方向评级"].str.contains("负向", na=False)
+        ]
+        neutral = group_rows[
+            ~group_rows.index.isin(positive.index)
+            & ~group_rows.index.isin(negative.index)
+        ]
+        source_links = "、".join(
+            f"[{Path(script).name}](../{script})"
+            for script in str(base["复现代码"]).split("；")
+            if script
         )
+
+        lines.extend(
+            [
+                f"## {experiment_number}. {experiment}",
+                "",
+                f"- 基准方案：{base['基准方案']}",
+                f"- 固定样本：{base['样本说明']}",
+                f"- 基准表现：{int(base['交易数'])} 笔，"
+                f"净胜率 {format_number(base['净胜率'])}%，"
+                f"平均净收益率 {format_number(base['平均净收益率'], 4)}%",
+                f"- 只改因子：{base['只改因子']}",
+                f"- 复现代码：{source_links}",
+                (
+                    f"- 分组数据：[{Path(detail_map[experiment]).name}]"
+                    f"({detail_map[experiment]})"
+                    if experiment in detail_map
+                    else ""
+                ),
+                "",
+                "| 因子取值 | 交易数 | 净胜率 | 平均净收益率 | 盈亏比 | 结论 |",
+                "|---|---:|---:|---:|---:|---|",
+            ]
+        )
+        for _, row in group_rows.iterrows():
+            lines.append(
+                f"| {row['因子取值']} | {int(row['交易数'])} | "
+                f"{format_number(row['净胜率'])}% | "
+                f"{format_number(row['平均净收益率'], 4)}% | "
+                f"{format_number(row['盈亏比'], 4)} | {row['结论']} |"
+            )
+
+        lines.extend(["", "**结论**", ""])
+        if not positive.empty:
+            positives = "、".join(
+                f"{row['因子取值']}（{int(row['交易数'])}笔，"
+                f"平均 {format_number(row['平均净收益率'], 4)}%）"
+                for _, row in positive.iterrows()
+            )
+            lines.append(f"- 相对基准偏强：{positives}。")
+        if not negative.empty:
+            negatives = "、".join(
+                f"{row['因子取值']}（{int(row['交易数'])}笔，"
+                f"平均 {format_number(row['平均净收益率'], 4)}%）"
+                for _, row in negative.iterrows()
+            )
+            lines.append(f"- 相对基准偏弱：{negatives}。")
+        if not neutral.empty:
+            neutrals = "、".join(
+                f"{row['因子取值']}（{int(row['交易数'])}笔）"
+                for _, row in neutral.iterrows()
+            )
+            lines.append(f"- 中性或样本不足：{neutrals}。")
+        lines.extend(
+            [
+                "- 这里只比较单因子分组，不把多个条件同时优化到最好。",
+                "",
+            ]
+        )
+
     lines.extend(
         [
+            "## 使用说明",
             "",
-            "## 结论",
-            "",
-            "- 正向并不等于未来一定有效，只表示在当前样本中相对基准更好。",
-            "- 负向结果同样保留，避免只选择表现好的分组。",
-            "- 样本数较少的分组需要结合样本外测试再决定是否采用。",
+            "- 正向只表示在当前样本内相对基准更好，不代表未来一定有效。",
+            "- 负向结果同样保留，避免只展示表现好的分组。",
+            "- 样本较少的分组需要结合样本外测试再判断。",
         ]
     )
     return "\n".join(lines) + "\n"
