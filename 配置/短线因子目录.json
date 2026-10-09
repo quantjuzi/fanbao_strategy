@@ -33,7 +33,6 @@
       "data_level": "L1/L2/Tick",
       "factors": [
         {"name": "委买委卖比", "formula": "bid_volume / ask_volume", "status": "待接入"},
-        {"name": "内外盘比", "formula": "active_buy_volume / active_sell_volume", "status": "待接入"},
         {"name": "封单金额", "formula": "limit_up_bid_amount", "status": "待接入"},
         {"name": "封成比", "formula": "limit_up_bid_amount / money", "status": "待接入"},
         {"name": "撤单率", "formula": "cancel_volume / order_volume", "status": "待接入"}
