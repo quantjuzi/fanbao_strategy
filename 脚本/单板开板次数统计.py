@@ -20,7 +20,7 @@ from 抓取开板次数 import (
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
-DATA_PATH = PROJECT_DIR / '数据' / '聚宽因子_2025-10-01_2026-09-30.csv'
+DATA_PATH = PROJECT_DIR / '数据' / '聚宽因子_2026-01-01_2026-09-30.csv'
 OUTPUT_DIR = (
     Path(r'C:\Users\Administrator\PyCharmMiscProject')
     / '高开均线完整输出'
@@ -51,7 +51,7 @@ def process_stock(
         else:
             minutes = fetch_minutes(
                 to_baostock_code(code),
-                '2025-10-01',
+                '2026-01-01',
                 '2026-09-30',
             )
             if not minutes.empty:

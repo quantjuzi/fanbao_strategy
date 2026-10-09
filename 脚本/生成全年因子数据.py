@@ -9,11 +9,27 @@ import pandas as pd
 
 
 项目目录 = Path(__file__).resolve().parents[1]
-原始文件 = Path(
-    r"C:\Users\Administrator\Desktop"
-    r"\聚宽实盘分类日线_2025-10-01_2026-10-01.csv"
-)
-输出文件 = 项目目录 / "数据" / "聚宽因子_2025-10-01_2026-09-30.csv"
+桌面目录 = Path(r"C:\Users\Administrator\Desktop")
+输出文件 = 项目目录 / "数据" / "聚宽因子_2026-01-01_2026-09-30.csv"
+研究起始 = pd.Timestamp("2026-01-01")
+研究结束 = pd.Timestamp("2026-09-30")
+
+
+def 定位原始文件() -> Path:
+    """从桌面选择最新的聚宽日线原始文件。"""
+
+    候选文件 = sorted(
+        (
+            文件路径
+            for 文件路径 in 桌面目录.glob("聚宽实盘分类日线_*.csv")
+            if 文件路径.is_file()
+        ),
+        key=lambda 文件路径: 文件路径.stat().st_mtime,
+        reverse=True,
+    )
+    if not 候选文件:
+        raise FileNotFoundError(f"桌面目录没有找到聚宽原始日线：{桌面目录}")
+    return 候选文件[0]
 
 
 def 生成标准因子(数据: pd.DataFrame) -> pd.DataFrame:
@@ -28,6 +44,9 @@ def 生成标准因子(数据: pd.DataFrame) -> pd.DataFrame:
         }
     )
     结果["time"] = pd.to_datetime(结果["time"], errors="coerce")
+    结果 = 结果.loc[
+        结果["time"].between(研究起始, 研究结束)
+    ].copy()
     结果["code"] = 结果["code"].astype(str)
 
     数值字段 = [
@@ -72,8 +91,7 @@ def 生成标准因子(数据: pd.DataFrame) -> pd.DataFrame:
 def 主程序() -> None:
     """读取原始日线并写入全年标准因子表。"""
 
-    if not 原始文件.exists():
-        raise FileNotFoundError(f"找不到原始数据：{原始文件}")
+    原始文件 = 定位原始文件()
     数据 = pd.read_csv(原始文件, encoding="utf-8-sig")
     结果 = 生成标准因子(数据)
     输出文件.parent.mkdir(parents=True, exist_ok=True)
