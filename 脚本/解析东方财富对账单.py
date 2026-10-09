@@ -578,14 +578,14 @@ def write_markdown_view(
             "",
             "## 文件入口",
             "",
-            "- `结果/实盘成交明细_脱敏.csv`",
+            "- `结果/实盘成交明细.csv`",
         ]
     )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def main() -> None:
-    """解析PDF并保存脱敏成交明细。"""
+    """解析PDF并保存已去掉个人信息的成交明细。"""
 
     args = parse_args()
     result = parse_pdf(args.pdf)
