@@ -3,32 +3,56 @@
 
 from __future__ import annotations
 
+import os
+import sys
 from pathlib import Path
 
 import pandas as pd
 
 
 项目目录 = Path(__file__).resolve().parents[1]
-桌面目录 = Path(r"C:\Users\Administrator\Desktop")
+环境原始目录 = os.environ.get("FANBAO_RAW_DATA_DIR")
 输出文件 = 项目目录 / "数据" / "聚宽因子_2026-01-01_2026-09-30.csv"
 研究起始 = pd.Timestamp("2026-01-01")
 研究结束 = pd.Timestamp("2026-09-30")
 
 
-def 定位原始文件() -> Path:
-    """从桌面选择最新的聚宽日线原始文件。"""
+def 定位原始文件(原始目录: Path | None = None) -> Path:
+    """从指定目录选择最新的聚宽日线原始文件。"""
 
-    候选文件 = sorted(
-        (
-            文件路径
-            for 文件路径 in 桌面目录.glob("聚宽实盘分类日线_*.csv")
-            if 文件路径.is_file()
-        ),
-        key=lambda 文件路径: 文件路径.stat().st_mtime,
-        reverse=True,
-    )
+    候选文件: list[Path] = []
+    if 原始目录 is not None and 原始目录.is_file():
+        候选文件 = [原始目录]
+    elif 原始目录 is not None:
+        候选目录 = [原始目录]
+    elif 环境原始目录:
+        候选目录 = [Path(环境原始目录)]
+    else:
+        候选目录 = [
+            项目目录 / "数据" / "原始",
+            Path.home() / "Desktop",
+            项目目录 / "数据",
+        ]
+
     if not 候选文件:
-        raise FileNotFoundError(f"桌面目录没有找到聚宽原始日线：{桌面目录}")
+        候选文件 = sorted(
+            (
+                文件路径
+                for 目录 in 候选目录
+                for 文件路径 in 目录.glob("聚宽实盘分类日线_*.csv")
+                if 文件路径.is_file()
+            ),
+            key=lambda 文件路径: 文件路径.stat().st_mtime,
+            reverse=True,
+        )
+    if not 候选文件:
+        已检查目录 = "\n".join(str(目录) for 目录 in 候选目录)
+        raise FileNotFoundError(
+            "没有找到聚宽原始日线："
+            f"\n{已检查目录}\n"
+            "请把聚宽实盘分类日线 CSV 放到该目录，"
+            "或通过 FANBAO_RAW_DATA_DIR 环境变量/第一个参数指定目录。"
+        )
     return 候选文件[0]
 
 
@@ -91,7 +115,8 @@ def 生成标准因子(数据: pd.DataFrame) -> pd.DataFrame:
 def 主程序() -> None:
     """读取原始日线并写入全年标准因子表。"""
 
-    原始文件 = 定位原始文件()
+    指定目录 = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else None
+    原始文件 = 定位原始文件(指定目录)
     数据 = pd.read_csv(原始文件, encoding="utf-8-sig")
     结果 = 生成标准因子(数据)
     输出文件.parent.mkdir(parents=True, exist_ok=True)

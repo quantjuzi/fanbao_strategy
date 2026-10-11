@@ -12,14 +12,14 @@ import baostock as bs
 import pandas as pd
 
 from 连板断板统计 import consecutive_limit_count, metric_row
+from 路径配置 import INTERMEDIATE_DIR
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 STRATEGY_PATH = PROJECT_DIR / '脚本' / '高开均线完整回测.py'
 DATA_PATH = PROJECT_DIR / '数据' / '聚宽因子_2026-01-01_2026-09-30.csv'
 OUTPUT_PATH = (
-    Path(r'C:\Users\Administrator\PyCharmMiscProject')
-    / '高开均线完整输出'
+    INTERMEDIATE_DIR
     / '连板后断板_深证成指上涨_胜率.csv'
 )
 

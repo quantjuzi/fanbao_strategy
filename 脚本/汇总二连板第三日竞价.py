@@ -11,12 +11,12 @@ from types import ModuleType
 import pandas as pd
 
 from 资金周转对比 import max_concurrent_positions
+from 路径配置 import INTERMEDIATE_DIR
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 SOURCE = (
-    Path(r'C:\Users\Administrator\PyCharmMiscProject')
-    / '高开均线完整输出'
+    INTERMEDIATE_DIR
     / '二连板及以上低竞价_前两日开板明细.csv'
 )
 OUTPUT = SOURCE.with_name('二连板低竞价_第三日竞价区间_绩效.csv')

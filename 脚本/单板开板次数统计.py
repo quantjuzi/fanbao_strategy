@@ -17,14 +17,12 @@ from 抓取开板次数 import (
     fetch_minutes,
     to_baostock_code,
 )
+from 路径配置 import INTERMEDIATE_DIR
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 DATA_PATH = PROJECT_DIR / '数据' / '聚宽因子_2026-01-01_2026-09-30.csv'
-OUTPUT_DIR = (
-    Path(r'C:\Users\Administrator\PyCharmMiscProject')
-    / '高开均线完整输出'
-)
+OUTPUT_DIR = INTERMEDIATE_DIR
 WORKERS = 4
 REQUEST_DELAY = 0.3
 MINUTE_CACHE_DIR = PROJECT_DIR / '数据' / 'single_board_minute_cache'

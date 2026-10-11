@@ -43,6 +43,8 @@ from typing import Any as Any
 import numpy as np
 import pandas as pd
 
+from 路径配置 import DEFAULT_FACTOR_FILE, INTERMEDIATE_DIR
+
 
 # ==================== 1. 明确目标 ====================
 
@@ -111,16 +113,7 @@ def 构建路径() -> 路径设置:
     脚本目录 = Path(__file__).resolve().parent
     项目目录 = 脚本目录.parent
 
-    候选列表 = [
-        项目目录
-        / "数据"
-        / "聚宽因子_2026-01-01_2026-09-30.csv",
-        Path(
-            r"C:\Users\Administrator\Documents\Codex"
-            r"\2026-07-21\fanbao-strategy-a-7-a-python"
-            r"\数据\聚宽因子_2026-01-01_2026-09-30.csv"
-        ),
-    ]
+    候选列表 = [DEFAULT_FACTOR_FILE]
 
     数据文件 = next((文件路径 for 文件路径 in 候选列表 if 文件路径.exists()), None)
     if 数据文件 is None:
@@ -129,7 +122,7 @@ def 构建路径() -> 路径设置:
 
     return 路径设置(
         数据文件=数据文件,
-        输出目录=脚本目录 / "高开均线完整输出",
+        输出目录=INTERMEDIATE_DIR,
     )
 
 

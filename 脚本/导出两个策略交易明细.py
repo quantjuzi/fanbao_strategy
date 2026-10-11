@@ -13,12 +13,12 @@ import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 
+from 路径配置 import INTERMEDIATE_DIR
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = PROJECT_ROOT / "结果"
-SOURCE_DIR = Path(
-    r"C:\Users\Administrator\PyCharmMiscProject\高开均线完整输出"
-)
+SOURCE_DIR = INTERMEDIATE_DIR
 
 STRATEGY1_SOURCE = SOURCE_DIR / "年化最高版_67笔交易清单.csv"
 STRATEGY2_SOURCE = SOURCE_DIR / "单板反包_开板明细.csv"

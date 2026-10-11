@@ -9,12 +9,12 @@ from pathlib import Path
 import pandas as pd
 
 from 汇总二连板第三日竞价 import calculate_metrics
+from 路径配置 import INTERMEDIATE_DIR
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 SOURCE = (
-    Path(r'C:\Users\Administrator\PyCharmMiscProject')
-    / '高开均线完整输出'
+    INTERMEDIATE_DIR
     / '二连板及以上低竞价_前两日开板明细.csv'
 )
 TRADING_DATES = pd.read_csv(

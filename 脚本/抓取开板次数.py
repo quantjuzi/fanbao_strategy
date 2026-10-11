@@ -16,12 +16,13 @@ from pathlib import Path
 import baostock as bs
 import pandas as pd
 
+from 路径配置 import INTERMEDIATE_DIR
+
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 DAILY_PATH = PROJECT_DIR / '数据' / '聚宽因子_2026-01-01_2026-09-30.csv'
 OUTPUT_PATH = (
-    Path(r'C:\Users\Administrator\PyCharmMiscProject')
-    / '高开均线完整输出'
+    INTERMEDIATE_DIR
     / '涨停开板次数样本.csv'
 )
 

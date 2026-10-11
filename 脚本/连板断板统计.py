@@ -10,14 +10,13 @@ from types import ModuleType
 
 import pandas as pd
 
+from 路径配置 import INTERMEDIATE_DIR
+
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 STRATEGY_PATH = PROJECT_DIR / '脚本' / '高开均线完整回测.py'
 DATA_PATH = PROJECT_DIR / '数据' / '聚宽因子_2026-01-01_2026-09-30.csv'
-OUTPUT_DIR = (
-    Path(r'C:\Users\Administrator\PyCharmMiscProject')
-    / '高开均线完整输出'
-)
+OUTPUT_DIR = INTERMEDIATE_DIR
 
 
 def load_strategy_module(path: Path) -> ModuleType:

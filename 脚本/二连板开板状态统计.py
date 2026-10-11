@@ -20,6 +20,7 @@ from 抓取开板次数 import (
     fetch_minutes,
     to_baostock_code,
 )
+from 路径配置 import INTERMEDIATE_DIR
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
@@ -29,10 +30,7 @@ CACHE_DIRS = [
     PROJECT_DIR / '数据' / 'minute_cache',
 ]
 NEW_CACHE_DIR = PROJECT_DIR / '数据' / 'two_board_minute_cache'
-OUTPUT_DIR = (
-    Path(r'C:\Users\Administrator\PyCharmMiscProject')
-    / '高开均线完整输出'
-)
+OUTPUT_DIR = INTERMEDIATE_DIR
 WORKERS = 4
 REQUEST_DELAY = 0.3
 

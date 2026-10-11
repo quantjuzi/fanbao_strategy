@@ -15,6 +15,8 @@ __pycache__/
 
 private/
 
+结果/中间输出/
+数据/原始/
 数据/minute_cache/
 数据/single_board_minute_cache/
 数据/two_board_minute_cache/

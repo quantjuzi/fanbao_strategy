@@ -248,16 +248,42 @@ Python | Pandas | NumPy | Matplotlib | SQLite | OpenPyXL | Unittest
 
 ## 快速开始
 
+运行环境建议使用 Python 3.10 及以上版本。
+
 ```bash
 git clone https://github.com/quantjuzi/fanbao_strategy.git
 cd fanbao_strategy
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 
-python 脚本/策略验证.py
 python 测试/因子实验汇总测试.py
 python 测试/策略验证测试.py
 python 测试/高开均线回测测试.py
+python 测试/仓库结构测试.py
+python 脚本/策略验证.py
 ```
+
+### 行情数据
+
+原始行情文件体积较大，不进入公开仓库。核心回测默认读取：
+
+```text
+数据/聚宽因子_2026-01-01_2026-09-30.csv
+```
+
+如果没有标准化文件，可以把聚宽原始日线放到 `数据/原始/`，再运行：
+
+```bash
+python 脚本/生成全年因子数据.py
+```
+
+也可以把原始文件放在其他目录，然后通过第一个参数指定：
+
+```bash
+python 脚本/生成全年因子数据.py "D:/行情数据"
+```
+
+分钟数据和下载缓存也保留在本地，不提交到公开仓库。需要分钟线的脚本会把中间结果写到
+`结果/中间输出/`，该目录同样不提交。
 
 ## 项目结构
 
@@ -268,9 +294,9 @@ python 测试/高开均线回测测试.py
 测试/            核心函数测试
 文档/            研究设计、因子说明和验证流程
 结果/            因子分组、交易清单和验证结果
+结果/中间输出/   本地生成的中间结果，不提交
 策略/            策略说明和市场逻辑
 数据/            原始数据和本地缓存
-daily_notes/     日常观察和复盘记录
 新策略实盘/      2026-10-08 起的每日实盘记录和盘前日志
 实盘详尽统计/    过去一年实盘成交的分类统计和逐笔明细
 ```
@@ -290,3 +316,7 @@ daily_notes/     日常观察和复盘记录
 ## 说明
 
 本项目用于策略研究和数据处理流程复现，不构成投资建议。历史表现不代表未来结果。
+
+## 许可证
+
+代码采用 MIT License，详见 [LICENSE](./LICENSE)。

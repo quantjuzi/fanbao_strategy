@@ -19,6 +19,7 @@ from types import ModuleType
 import pandas as pd
 
 from 连板断板统计 import consecutive_limit_count
+from 路径配置 import INTERMEDIATE_DIR
 
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
@@ -26,10 +27,7 @@ RESULT_DIR = PROJECT_DIR / "结果"
 DOC_PATH = PROJECT_DIR / "文档" / "单反包单连板对比.md"
 DATA_PATH = PROJECT_DIR / "数据" / "聚宽因子_2026-01-01_2026-09-30.csv"
 STRATEGY_PATH = PROJECT_DIR / "脚本" / "高开均线完整回测.py"
-REVERSAL_SOURCE = Path(
-    r"C:\Users\Administrator\PyCharmMiscProject"
-    r"\高开均线完整输出\单板反包_开板明细.csv"
-)
+REVERSAL_SOURCE = INTERMEDIATE_DIR / "单板反包_开板明细.csv"
 
 PERIOD_START = pd.Timestamp("2026-08-01")
 PERIOD_END = pd.Timestamp("2026-09-30")

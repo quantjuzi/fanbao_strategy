@@ -7,11 +7,10 @@ import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 
+from 路径配置 import INTERMEDIATE_DIR
 
-SOURCE = Path(
-    r'C:\Users\Administrator\PyCharmMiscProject\高开均线完整输出'
-    r'\年化最高版_67笔交易清单.csv'
-)
+
+SOURCE = INTERMEDIATE_DIR / '年化最高版_67笔交易清单.csv'
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / '结果'
 CSV_PATH = OUTPUT_DIR / '交易明细.csv'
 EXCEL_PATH = OUTPUT_DIR / '交易明细.xlsx'
