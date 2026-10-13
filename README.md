@@ -251,8 +251,8 @@ Python | Pandas | NumPy | Matplotlib | SQLite | OpenPyXL | Unittest
 运行环境建议使用 Python 3.10 及以上版本。
 
 ```bash
-git clone https://github.com/quantjuzi/limitup-reversal.git
-cd limitup-reversal
+git clone https://github.com/quantjuzi/reversal.git
+cd reversal
 python -m pip install -r requirements.txt
 
 python 测试/因子实验汇总测试.py
