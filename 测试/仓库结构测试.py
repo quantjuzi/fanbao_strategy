@@ -31,6 +31,42 @@ class RepositoryStructureTests(unittest.TestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("聚宽因子_2026-01-01_2026-09-30.csv", readme)
 
+    def test_public_files_do_not_contain_private_strategy_terms(self) -> None:
+        forbidden = (
+            "".join(chr(code) for code in (0x5916, 0x76D8)),
+            "".join(chr(code) for code in (0x5185, 0x76D8)),
+            "".join(chr(code) for code in (0x95EE, 0x8D22)),
+            "iwencai",
+        )
+        offenders = []
+        for path in ROOT.rglob("*"):
+            if not path.is_file() or path.suffix.lower() not in {
+                ".md",
+                ".py",
+                ".json",
+                ".html",
+                ".txt",
+            }:
+                continue
+            if path.resolve() == Path(__file__).resolve():
+                continue
+            relative = path.relative_to(ROOT)
+            if relative.parts and relative.parts[0] in {
+                "private",
+                "work",
+                ".git",
+                "数据",
+            }:
+                continue
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            if any(term in text for term in forbidden):
+                offenders.append(str(relative))
+        self.assertEqual(
+            offenders,
+            [],
+            f"公开文件出现私密策略词：{offenders}",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
