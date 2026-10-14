@@ -67,10 +67,9 @@ def 生成标准因子(数据: pd.DataFrame) -> pd.DataFrame:
             "is_limit_up": "是否涨停",
         }
     )
+    if "time" not in 结果.columns:
+        raise ValueError("原始数据缺少 date/time 字段。")
     结果["time"] = pd.to_datetime(结果["time"], errors="coerce")
-    结果 = 结果.loc[
-        结果["time"].between(研究起始, 研究结束)
-    ].copy()
     结果["code"] = 结果["code"].astype(str)
 
     数值字段 = [
@@ -84,9 +83,10 @@ def 生成标准因子(数据: pd.DataFrame) -> pd.DataFrame:
         "high_limit",
         "low_limit",
         "paused",
-        "均价原始",
         "是否涨停",
     ]
+    if "均价原始" in 结果.columns:
+        数值字段.append("均价原始")
     for 字段 in 数值字段:
         结果[字段] = pd.to_numeric(结果[字段], errors="coerce")
 
@@ -109,19 +109,30 @@ def 生成标准因子(数据: pd.DataFrame) -> pd.DataFrame:
     结果["实体涨幅"] = (
         结果["close"] / 结果["open"] - 1
     ) * 100
-    return 结果.drop(columns=["均价原始"])
+    结果 = 结果.loc[
+        结果["time"].between(研究起始, 研究结束)
+    ].copy()
+    for 冗余字段 in ["index", "均价原始"]:
+        if 冗余字段 in 结果.columns:
+            结果 = 结果.drop(columns=[冗余字段])
+    return 结果
 
 
 def 主程序() -> None:
     """读取原始日线并写入全年标准因子表。"""
 
     指定目录 = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else None
+    输出路径 = (
+        Path(sys.argv[2]).resolve()
+        if len(sys.argv) > 2
+        else 输出文件
+    )
     原始文件 = 定位原始文件(指定目录)
     数据 = pd.read_csv(原始文件, encoding="utf-8-sig")
     结果 = 生成标准因子(数据)
-    输出文件.parent.mkdir(parents=True, exist_ok=True)
-    结果.to_csv(输出文件, index=False, encoding="utf-8-sig")
-    print(f"输出：{输出文件}")
+    输出路径.parent.mkdir(parents=True, exist_ok=True)
+    结果.to_csv(输出路径, index=False, encoding="utf-8-sig")
+    print(f"输出：{输出路径}")
     print(f"形状：{结果.shape}")
     print(f"日期：{结果['time'].min()} 到 {结果['time'].max()}")
     print(f"股票数：{结果['code'].nunique()}")

@@ -229,19 +229,29 @@ def validate_rows(rows: list[dict[str, str]], schema: dict[str, object]) -> list
                 parse_date(value)
             except ValueError:
                 issues.append(f"第 {line_number} 行 {column} 日期格式错误: {value}")
+                continue
 
         for column, allowed in allowed_values.items():
             value = (row.get(column, "") or "").strip()
             if value not in allowed:
                 issues.append(f"第 {line_number} 行 {column} 非法值: {value}")
 
-        buy_date = parse_date(row.get("日期", ""))
-        sell_date = parse_date(row.get("卖出日期", ""))
+        try:
+            buy_date = parse_date(row.get("日期", ""))
+        except ValueError:
+            buy_date = None
+        try:
+            sell_date = parse_date(row.get("卖出日期", ""))
+        except ValueError:
+            sell_date = None
         if buy_date and sell_date and sell_date < buy_date:
             issues.append(f"第 {line_number} 行卖出日期早于买入日期")
 
         profit = (row.get("是否盈利", "") or "").strip()
-        return_pct = parse_float(row.get("收益率%", ""))
+        try:
+            return_pct = parse_float(row.get("收益率%", ""))
+        except ValueError:
+            return_pct = None
         if return_pct is not None:
             expected_profit = "是" if return_pct > 0 else "否"
             if profit != expected_profit:

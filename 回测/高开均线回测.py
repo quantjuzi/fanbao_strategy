@@ -31,6 +31,7 @@ class BacktestConfig:
 
     top_n: int = 5
     position_size: float = 20_000.0
+    initial_capital: float = 210_000.0
     lot_size: int = 100
     commission_rate: float = 0.0001
     min_commission: float = 5.0
@@ -55,6 +56,31 @@ REQUIRED_COLUMNS = {
 }
 
 
+TRADING_DAY_INDEX = "交易日序号"
+
+
+def add_trading_day_index(df: pd.DataFrame) -> pd.DataFrame:
+    """按全市场交易日给每行编号，停牌行也要保留这个编号。"""
+
+    result = df.copy()
+    if TRADING_DAY_INDEX in result.columns:
+        return result
+
+    calendar = (
+        pd.to_datetime(result["time"])
+        .drop_duplicates()
+        .sort_values()
+        .reset_index(drop=True)
+    )
+    date_to_index = {
+        date: index for index, date in enumerate(calendar)
+    }
+    result[TRADING_DAY_INDEX] = (
+        pd.to_datetime(result["time"]).map(date_to_index)
+    )
+    return result
+
+
 def load_data(path: Path) -> pd.DataFrame:
     """读取日线数据，并完成类型转换和基础清洗。"""
 
@@ -68,6 +94,7 @@ def load_data(path: Path) -> pd.DataFrame:
 
     df["time"] = pd.to_datetime(df["time"], errors="coerce")
     df["code"] = df["code"].astype("string")
+    df = add_trading_day_index(df)
 
     numeric_columns = [
         "open",
@@ -136,20 +163,68 @@ def prepare_factors(
 def build_trades(df: pd.DataFrame) -> pd.DataFrame:
     """按股票对齐 T+1 买入和 T+2 卖出。"""
 
-    result = df.copy()
-    grouped = result.groupby("code", sort=False)
-
-    # shift(-1) 和 shift(-2) 必须在同一只股票内计算。
-    result["买入日期"] = grouped["time"].shift(-1)
-    result["买入开盘价"] = grouped["open"].shift(-1)
-    result["卖出日期"] = grouped["time"].shift(-2)
-    result["卖出均价"] = grouped["均价"].shift(-2)
-
+    result = add_trading_day_index(df)
     trades = result.loc[result["信号"].eq(1)].copy()
+    trades["目标买入序号"] = trades[TRADING_DAY_INDEX] + 1
+    trades["目标卖出序号"] = trades[TRADING_DAY_INDEX] + 2
+
+    lookup = result[
+        [
+            "code",
+            TRADING_DAY_INDEX,
+            "time",
+            "open",
+            "close",
+            "均价",
+        ]
+    ].copy()
+    buy_lookup = lookup.rename(
+        columns={
+            TRADING_DAY_INDEX: "目标买入序号",
+            "time": "买入日期",
+            "open": "买入开盘价",
+            "close": "买入日收盘价",
+        }
+    )[["code", "目标买入序号", "买入日期", "买入开盘价", "买入日收盘价"]]
+    sell_lookup = lookup.rename(
+        columns={
+            TRADING_DAY_INDEX: "目标卖出序号",
+            "time": "卖出日期",
+            "均价": "卖出均价",
+        }
+    )[["code", "目标卖出序号", "卖出日期", "卖出均价"]]
+
+    buy_rows = trades[
+        ["code", "目标买入序号"]
+    ].merge(
+        buy_lookup,
+        on=["code", "目标买入序号"],
+        how="left",
+        sort=False,
+    )
+    sell_rows = trades[
+        ["code", "目标卖出序号"]
+    ].merge(
+        sell_lookup,
+        on=["code", "目标卖出序号"],
+        how="left",
+        sort=False,
+    )
+    trades = pd.concat(
+        [
+            trades.reset_index(drop=True),
+            buy_rows[
+                ["买入日期", "买入开盘价", "买入日收盘价"]
+            ].reset_index(drop=True),
+            sell_rows[["卖出日期", "卖出均价"]].reset_index(drop=True),
+        ],
+        axis=1,
+    )
     trades = trades.dropna(
         subset=[
             "买入日期",
             "买入开盘价",
+            "买入日收盘价",
             "卖出日期",
             "卖出均价",
         ]
@@ -260,6 +335,142 @@ def max_concurrent_positions(
     return int(np.cumsum(events[:-1]).max())
 
 
+def compound_annual_return(
+    period_return: float,
+    trading_days: int,
+) -> float:
+    """把区间收益率按 252 个交易日折算成复利年化。"""
+
+    if trading_days <= 0 or period_return <= -1:
+        return np.nan
+    return (1 + period_return) ** (252 / trading_days) - 1
+
+
+def calculate_account_performance(
+    portfolio: pd.DataFrame,
+    trading_dates: pd.Series,
+    config: BacktestConfig,
+) -> tuple[dict[str, float], pd.DataFrame]:
+    """按固定初始资金计算账户净值、占用资金和真实回撤。"""
+
+    calendar = (
+        pd.to_datetime(trading_dates)
+        .drop_duplicates()
+        .sort_values()
+        .reset_index(drop=True)
+    )
+    cash_events = pd.Series(0.0, index=calendar)
+    position_events = pd.Series(0.0, index=calendar)
+    occupied_capital = pd.Series(0.0, index=calendar)
+
+    for row in portfolio.itertuples(index=False):
+        buy_date = pd.Timestamp(row.买入日期)
+        sell_date = pd.Timestamp(row.卖出日期)
+        buy_cash = float(row.买入金额 + row.买入费用)
+        position_value = float(row.股数 * row.买入日收盘价)
+        sell_cash = float(row.卖出金额 - row.卖出费用)
+
+        cash_events.loc[buy_date] -= buy_cash
+        cash_events.loc[sell_date] += sell_cash
+        position_events.loc[buy_date] += position_value
+        position_events.loc[sell_date] -= position_value
+        occupied_capital.loc[buy_date:sell_date] += buy_cash
+
+    first_buy = portfolio["买入日期"].min()
+    last_sell = portfolio["卖出日期"].max()
+    active_dates = calendar.loc[
+        calendar.between(first_buy, last_sell)
+    ]
+    equity = (
+        config.initial_capital
+        + cash_events.cumsum()
+        + position_events.cumsum()
+    ).loc[active_dates]
+    occupied = occupied_capital.loc[active_dates]
+
+    previous_equity = equity.shift(1)
+    if not previous_equity.empty:
+        previous_equity.iloc[0] = config.initial_capital
+    daily_returns = equity.div(previous_equity).sub(1)
+    running_peak = equity.cummax().clip(
+        lower=config.initial_capital
+    )
+    drawdown = equity.div(running_peak).sub(1)
+
+    total_pnl = float(portfolio["净盈亏"].sum())
+    fixed_return = total_pnl / config.initial_capital
+    average_capital = float(occupied.mean())
+    max_capital = float(occupied.max())
+    average_capital_return = (
+        total_pnl / average_capital
+        if average_capital > 0
+        else 0.0
+    )
+    max_capital_return = (
+        total_pnl / max_capital
+        if max_capital > 0
+        else 0.0
+    )
+    trading_days = len(active_dates)
+    volatility = (
+        float(daily_returns.std(ddof=1) * np.sqrt(252))
+        if trading_days > 1
+        else np.nan
+    )
+    sharpe = (
+        float(
+            daily_returns.mean()
+            / daily_returns.std(ddof=1)
+            * np.sqrt(252)
+        )
+        if trading_days > 1
+        and daily_returns.std(ddof=1) > 0
+        else np.nan
+    )
+
+    metrics = {
+        "初始资金": float(config.initial_capital),
+        "累计净盈亏": total_pnl,
+        "固定账户最终净值": float(
+            equity.iloc[-1] / config.initial_capital
+        ),
+        "固定账户收益率": float(fixed_return * 100),
+        "平均资金占用": average_capital,
+        "最高资金占用": max_capital,
+        "固定账户年化": float(
+            compound_annual_return(fixed_return, trading_days) * 100
+        ),
+        "平均资金年化": float(
+            compound_annual_return(
+                average_capital_return,
+                trading_days,
+            )
+            * 100
+        ),
+        "最高资金年化": float(
+            compound_annual_return(
+                max_capital_return,
+                trading_days,
+            )
+            * 100
+        ),
+        "最大回撤": float(drawdown.min() * 100),
+        "年化波动率": float(volatility * 100),
+        "夏普": sharpe,
+        "账户交易日数": float(trading_days),
+    }
+    curve = pd.DataFrame(
+        {
+            "日期": equity.index,
+            "每日收益率": daily_returns.values,
+            "净值": equity.values / config.initial_capital,
+            "回撤": drawdown.values,
+            "占用资金": occupied.values,
+        }
+    )
+    return metrics, curve
+
+
 def calculate_metrics(
     portfolio: pd.DataFrame,
     trading_dates: pd.Series,
@@ -278,48 +489,14 @@ def calculate_metrics(
         portfolio["净收益率"].lt(0),
         "净收益率",
     ]
-    total_pnl = float(portfolio["净盈亏"].sum())
     max_positions = max_concurrent_positions(
         portfolio,
         trading_dates,
     )
-    capital_required = max_positions * config.position_size
-    interval_return = (
-        total_pnl / capital_required
-        if capital_required > 0
-        else 0.0
-    )
-
-    calendar = (
-        pd.to_datetime(trading_dates)
-        .drop_duplicates()
-        .sort_values()
-    )
-    first_buy = portfolio["买入日期"].min()
-    last_sell = portfolio["卖出日期"].max()
-    active_dates = calendar.loc[
-        calendar.between(first_buy, last_sell)
-    ]
-    daily_returns = (
-        portfolio.groupby("卖出日期")["净收益率"]
-        .mean()
-        .div(100)
-        .reindex(active_dates, fill_value=0.0)
-    )
-    equity = (1 + daily_returns).cumprod()
-    drawdown = equity / equity.cummax() - 1
-    annual_return = (
-        equity.iloc[-1] ** (252 / len(daily_returns)) - 1
-        if len(daily_returns) > 0 and equity.iloc[-1] > 0
-        else np.nan
-    )
-    sharpe = (
-        daily_returns.mean()
-        / daily_returns.std(ddof=1)
-        * np.sqrt(252)
-        if len(daily_returns) > 1
-        and daily_returns.std(ddof=1) > 0
-        else np.nan
+    account_metrics, _ = calculate_account_performance(
+        portfolio,
+        trading_dates,
+        config,
     )
 
     return {
@@ -333,13 +510,18 @@ def calculate_metrics(
             if not winners.empty and not losers.empty
             else np.nan
         ),
-        "总盈亏": total_pnl,
+        "总盈亏": account_metrics["累计净盈亏"],
         "最大持仓数": float(max_positions),
-        "所需资金": float(capital_required),
-        "区间收益率": float(interval_return * 100),
-        "年化收益率": float(annual_return * 100),
-        "最大回撤": float(drawdown.min() * 100),
-        "夏普": float(sharpe),
+        "初始资金": account_metrics["初始资金"],
+        "平均资金占用": account_metrics["平均资金占用"],
+        "最高资金占用": account_metrics["最高资金占用"],
+        "固定账户收益率": account_metrics["固定账户收益率"],
+        "固定账户年化": account_metrics["固定账户年化"],
+        "平均资金年化": account_metrics["平均资金年化"],
+        "最高资金年化": account_metrics["最高资金年化"],
+        "年化收益率": account_metrics["平均资金年化"],
+        "最大回撤": account_metrics["最大回撤"],
+        "夏普": account_metrics["夏普"],
     }
 
 

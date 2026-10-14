@@ -77,6 +77,53 @@ class TrendGapBacktestTests(unittest.TestCase):
             (11.0 / 10.5 - 1) * 100,
         )
 
+    def test_paused_next_day_skips_trade(self) -> None:
+        raw = self.sample_data()
+        raw.loc[
+            raw["time"].eq(pd.Timestamp("2026-01-06")),
+            "paused",
+        ] = 1.0
+
+        config = MODULE.BacktestConfig()
+        raw = MODULE.add_trading_day_index(raw)
+        clean = raw.loc[raw["paused"].eq(0)].copy()
+        clean = clean.drop_duplicates(
+            subset=["code", "time"],
+            keep="last",
+        )
+        prepared = MODULE.prepare_factors(clean, config)
+        prepared["信号"] = 0
+        prepared.loc[
+            prepared["time"].eq(pd.Timestamp("2026-01-05")),
+            "信号",
+        ] = 1
+
+        trades = MODULE.build_trades(prepared)
+
+        self.assertTrue(trades.empty)
+
+    def test_account_return_uses_initial_capital(self) -> None:
+        config = MODULE.BacktestConfig(initial_capital=100_000.0)
+        data = MODULE.prepare_factors(self.sample_data(), config)
+        trades = MODULE.apply_costs(MODULE.build_trades(data), config)
+        portfolio = MODULE.select_portfolio(trades, config)
+        metrics = MODULE.calculate_metrics(
+            portfolio,
+            data["time"],
+            config,
+        )
+
+        self.assertNotAlmostEqual(
+            metrics["固定账户收益率"],
+            float(portfolio.iloc[0]["净收益率"]),
+        )
+        self.assertAlmostEqual(
+            metrics["固定账户收益率"],
+            float(portfolio["净盈亏"].sum())
+            / config.initial_capital
+            * 100,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

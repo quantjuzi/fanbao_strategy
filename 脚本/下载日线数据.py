@@ -55,8 +55,12 @@ def fetch_stock_list() -> List[str]:
     return sorted(codes)
 
 
-def fetch_one(code: str, start: str, end: str) -> pd.DataFrame:
-    """下载单只股票在区间内的日线，失败时返回空表。"""
+def fetch_one(
+    code: str,
+    start: str,
+    end: str,
+) -> tuple[pd.DataFrame, str | None]:
+    """下载单只股票在区间内的日线，并返回失败原因。"""
     try:
         rs = bs.query_history_k_data_plus(
             code,
@@ -69,9 +73,12 @@ def fetch_one(code: str, start: str, end: str) -> pd.DataFrame:
         rows = []
         while rs.next():
             rows.append(rs.get_row_data())
-        return pd.DataFrame(rows, columns=FIELDS.split(","))
-    except Exception:
-        return pd.DataFrame()
+        return (
+            pd.DataFrame(rows, columns=FIELDS.split(",")),
+            None,
+        )
+    except Exception as error:
+        return pd.DataFrame(), f"{type(error).__name__}: {error}"
 
 
 def worker_init() -> None:
@@ -91,23 +98,50 @@ def main() -> None:
     print(f"A 股数量: {len(codes)}，区间: {args.start} ~ {args.end}")
 
     parts: List[pd.DataFrame] = []
+    failures: List[dict[str, str]] = []
     total = len(codes)
     done = 0
     t0 = time.time()
     with cf.ProcessPoolExecutor(max_workers=6, initializer=worker_init) as pool:
         futures = {pool.submit(fetch_one, c, args.start, args.end): c for c in codes}
         for fut in cf.as_completed(futures):
-            part = fut.result()
+            code = futures[fut]
+            try:
+                part, error = fut.result()
+            except Exception as exc:
+                part = pd.DataFrame()
+                error = f"{type(exc).__name__}: {exc}"
             if not part.empty:
                 parts.append(part)
+            if error:
+                failures.append(
+                    {
+                        "code": code,
+                        "error": error,
+                    }
+                )
             done += 1
             if done % 500 == 0 or done == total:
                 el = time.time() - t0
                 print(f"进度: {done}/{total}，用时 {el:.0f}s")
 
     out_path = os.path.join(ROOT, "数据", f"全市场A股_{args.start}_{args.end}_baostock.csv")
+    if not parts:
+        raise RuntimeError("全部股票下载失败，未生成日线文件。")
     df = pd.concat(parts, ignore_index=True)
     df.to_csv(out_path, index=False, encoding="utf-8-sig")
+    if failures:
+        failure_path = os.path.join(
+            ROOT,
+            "数据",
+            f"下载失败_{args.start}_{args.end}_baostock.csv",
+        )
+        pd.DataFrame(failures).to_csv(
+            failure_path,
+            index=False,
+            encoding="utf-8-sig",
+        )
+        print(f"下载失败: {len(failures)} 支 -> {failure_path}")
     print(f"完成: {len(df)} 行, {df['code'].nunique()} 支 -> {out_path}")
 
 

@@ -223,10 +223,16 @@ def parse_account_summary(
         r"(?P<金额>-?[\d.]+)"
     )
     external_flow = 0.0
+    first_trade_seen = False
     for line in text.splitlines():
-        match = external_pattern.match(line.strip())
+        stripped = line.strip()
+        if TRADE_PATTERN.match(stripped):
+            first_trade_seen = True
+            continue
+        match = external_pattern.match(stripped)
         if match:
-            external_flow += float(match.group("金额"))
+            if first_trade_seen:
+                external_flow += float(match.group("金额"))
 
     asset_match = re.search(
         r"总资产\(RMB\)[：:]\s*([\d,.]+)",
@@ -249,7 +255,7 @@ def parse_account_summary(
     )
     return {
         "期初现金估算": initial_cash,
-        "银证净转入": external_flow,
+        "首笔交易后银证净转入": external_flow,
         "期末总资产": ending_assets,
         "账户总盈亏估算": total_profit,
         "交易现金流净额": float(trades["资金发生额"].sum()),

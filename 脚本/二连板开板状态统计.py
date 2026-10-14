@@ -67,7 +67,7 @@ def cached_minutes(code: str) -> pd.DataFrame | None:
 
 def process_stock(
     item: tuple[str, list[dict[str, object]]],
-) -> list[dict[str, object]]:
+) -> tuple[list[dict[str, object]], str | None]:
     '''处理一只股票在多个交易日的开板状态。'''
 
     code, events = item
@@ -87,11 +87,11 @@ def process_stock(
                     encoding='utf-8-sig',
                 )
                 time.sleep(REQUEST_DELAY)
-    except Exception:
-        return []
+    except Exception as error:
+        return [], f'{type(error).__name__}: {error}'
 
     if minutes.empty:
-        return []
+        return [], '分钟数据为空'
     minutes['date'] = pd.to_datetime(minutes['date'])
     minute_by_date = {
         date: group
@@ -113,17 +113,18 @@ def process_stock(
             )
             row[f'开板次数{number}'] = open_count
         rows.append(row)
-    return rows
+    return rows, None
 
 
 def build_candidates() -> pd.DataFrame:
     '''构建二连板及以上、第三天低竞价买入的候选交易。'''
 
-    df = pd.read_csv(DATA_PATH, encoding='utf-8-sig')
-    df['time'] = pd.to_datetime(df['time'])
-    df['实体涨幅'] = (df['close'] / df['open'] - 1) * 100
-    df['均价'] = df['money'] / df['volume']
-    df = df.sort_values(['code', 'time'])
+    strategy = load_strategy_module(
+        PROJECT_DIR / '脚本' / '高开均线完整回测.py'
+    )
+    raw = pd.read_csv(DATA_PATH, encoding='utf-8-sig')
+    df, _ = strategy.清洗数据(raw)
+    df = strategy.计算因子(df)
     grouped = df.groupby('code', sort=False)
 
     df['前1涨停'] = grouped['是否涨停'].shift(1).fillna(0)
@@ -139,8 +140,14 @@ def build_candidates() -> pd.DataFrame:
     df['第二天竞价涨幅'] = grouped['竞价涨幅'].shift(1)
     df['买入日期'] = df['time']
     df['买入参考价'] = df['open']
-    df['卖出日期'] = grouped['time'].shift(-1)
-    df['卖出参考价'] = grouped['均价'].shift(-1)
+    df = strategy.添加未来交易日列(
+        df,
+        1,
+        {
+            'time': '卖出日期',
+            '均价': '卖出参考价',
+        },
+    )
 
     mask = (
         df['前1涨停'].eq(1)
@@ -193,8 +200,20 @@ def add_open_flags(candidates: pd.DataFrame) -> pd.DataFrame:
             initializer=worker_init,
         ) as pool:
             rows: list[dict[str, object]] = []
+            failures: list[dict[str, str]] = []
             completed = 0
-            for chunk in pool.map(process_stock, items):
+            for code, chunk_and_error in zip(
+                grouped.keys(),
+                pool.map(process_stock, items),
+            ):
+                chunk, error = chunk_and_error
+                if error:
+                    failures.append(
+                        {
+                            'code': code,
+                            'error': error,
+                        }
+                    )
                 rows.extend(chunk)
                 completed += 1
                 if completed % 25 == 0 or completed == len(items):
@@ -205,7 +224,24 @@ def add_open_flags(candidates: pd.DataFrame) -> pd.DataFrame:
     finally:
         bs.logout()
 
+    if failures:
+        failure_path = (
+            OUTPUT_DIR / '二连板_分钟数据失败.csv'
+        )
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame(failures).to_csv(
+            failure_path,
+            index=False,
+            encoding='utf-8-sig',
+        )
+        print(
+            f'分钟数据失败：{len(failures)} 支 -> {failure_path}',
+            flush=True,
+        )
+
     minute_result = pd.DataFrame(rows)
+    if minute_result.empty:
+        raise RuntimeError('全部候选股票的分钟数据均不可用。')
     return candidates.merge(
         minute_result,
         on='trade_id',

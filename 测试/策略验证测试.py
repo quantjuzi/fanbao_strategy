@@ -40,6 +40,22 @@ class StrategyValidationTests(unittest.TestCase):
         issues = MODULE.validate_rows(rows, schema)
         self.assertTrue(any("重复" in issue for issue in issues))
 
+    def test_validate_rows_reports_bad_date_without_crashing(self) -> None:
+        schema = MODULE.load_schema()
+        row = {
+            column: ""
+            for column in schema["required_columns"]
+        }
+        row["日期"] = "not-a-date"
+        row["是否满足条件"] = "是"
+        row["模拟买入"] = "是"
+
+        issues = MODULE.validate_rows([row], schema)
+
+        self.assertTrue(
+            any("日期格式错误" in issue for issue in issues)
+        )
+
     def test_sample_conclusion_thresholds(self) -> None:
         self.assertEqual(MODULE.sample_conclusion(2), "样本不足")
         self.assertEqual(MODULE.sample_conclusion(30), "初步验证")

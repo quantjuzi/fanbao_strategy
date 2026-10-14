@@ -150,8 +150,14 @@ def build_single_relay() -> pd.DataFrame:
     df["前一日实体涨幅"] = grouped["实体涨幅"].shift(1)
     df["买入日期"] = df["time"]
     df["买入参考价"] = df["open"]
-    df["卖出日期"] = grouped["time"].shift(-1)
-    df["卖出参考价"] = grouped["均价"].shift(-1)
+    df = strategy.添加未来交易日列(
+        df,
+        1,
+        {
+            "time": "卖出日期",
+            "均价": "卖出参考价",
+        },
+    )
     df["信号"] = (
         df["前一日连板数"].eq(1)
         & df["前两日涨停"].eq(0)
